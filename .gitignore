@@ -19,6 +19,11 @@ client/dist/
 .env.local
 .env.*.local
 
+# Claude Code
+.claude/
+CLAUDE.md
+skills-lock.json
+
 # IDE
 .idea/
 *.swp
