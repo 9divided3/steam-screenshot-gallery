@@ -1,0 +1,37 @@
+# 依赖
+node_modules/
+
+# 数据库和密钥（每次启动自动生成）
+server/data/
+
+# 用户上传和生成的文件
+server/uploads/
+server/thumbnails/
+
+# 调试日志
+server/debug/
+
+# 构建产物
+client/dist/
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# 运行时文件
+server/pid.txt
+.claude/settings.local.json
+.claude/hooks/
+.claude/scheduled_tasks.lock
+*.pyc
+__pycache__/
+
+# 空占位数据库
+server/db/screenshots.db
