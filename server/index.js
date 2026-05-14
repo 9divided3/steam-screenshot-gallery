@@ -7,7 +7,7 @@ const { init } = require('./db/database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-['uploads', 'thumbnails'].forEach((dir) => {
+['uploads', 'uploads/avatars', 'thumbnails'].forEach((dir) => {
   const p = path.join(__dirname, dir);
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 });
