@@ -7,6 +7,8 @@ services:
     environment:
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}
       - NODE_ENV=production
+      - PORT=3000
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
     volumes:
       - ./data:/app/server/data
       - ./uploads:/app/server/uploads
