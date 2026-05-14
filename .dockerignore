@@ -1,0 +1,17 @@
+node_modules/
+client/node_modules/
+server/node_modules/
+client/dist/
+server/data/
+server/uploads/
+server/thumbnails/
+server/debug/
+server/pid.txt
+.git/
+.claude/
+.idea/
+素材/
+start.bat
+.env
+.env.local
+.env.*.local

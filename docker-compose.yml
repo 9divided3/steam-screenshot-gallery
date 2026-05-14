@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    container_name: steam-gallery
+    ports:
+      - "3000:3000"
+    environment:
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}
+      - NODE_ENV=production
+    volumes:
+      - ./data:/app/server/data
+      - ./uploads:/app/server/uploads
+      - ./thumbnails:/app/server/thumbnails
+    restart: unless-stopped

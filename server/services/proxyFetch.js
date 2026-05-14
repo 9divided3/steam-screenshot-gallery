@@ -32,8 +32,7 @@ function proxyFetch(url, options = {}, _redirectCount = 0) {
       },
       timeout,
       agent: false,
-      // Allow self-signed / mismatched certs when hosts points to CDN IPs
-      rejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED === '1',
+      rejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED !== '0',
     }, (res) => {
       const chunks = [];
       res.on('data', (chunk) => chunks.push(chunk));

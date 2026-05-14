@@ -89,6 +89,79 @@ npm run dev
 
 ---
 
+## Docker 部署
+
+### 环境要求
+
+- **Docker** >= 20.x
+- **Docker Compose** >= 2.x
+
+### 1. 准备环境变量
+
+```bash
+cp .env.example .env
+```
+
+编辑 `.env` 文件，**必须修改 `JWT_SECRET`** 为随机字符串。生成方式：
+
+```bash
+openssl rand -hex 64
+```
+
+### 2. 启动服务
+
+```bash
+docker compose up -d
+```
+
+服务将在 `http://localhost:3000` 运行。
+
+### 3. 数据持久化
+
+以下目录通过 Docker Volume 挂载到宿主机，数据不会因容器重启而丢失：
+
+| 目录 | 用途 |
+|------|------|
+| `./data` | SQLite 数据库 + JWT 密钥 |
+| `./uploads` | 用户上传的截图文件 |
+| `./thumbnails` | 系统生成的缩略图 |
+
+### 4. 反向代理（推荐）
+
+生产环境建议在容器前放置 Nginx 或 Caddy 作为反向代理，处理 HTTPS 和静态资源缓存。示例 Nginx 配置：
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+
+    ssl_certificate     /etc/ssl/certs/your-cert.pem;
+    ssl_certificate_key /etc/ssl/private/your-key.pem;
+
+    client_max_body_size 50m;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### 5. 阿里云部署要点
+
+- **ECS 单机**：安装 Docker 后按上述步骤操作，安全组开放 443（HTTPS）+ 80（HTTP 重定向），不要直接暴露 3000 端口
+- **ACR 镜像仓库**：如需推送到阿里云容器镜像服务：
+  ```bash
+  docker tag steam-gallery:latest registry.cn-<region>.aliyuncs.com/<namespace>/steam-gallery:latest
+  docker push registry.cn-<region>.aliyuncs.com/<namespace>/steam-gallery:latest
+  ```
+- **数据备份**：定期备份 `data/`、`uploads/`、`thumbnails/` 三个目录
+
+---
+
 ## 项目结构
 
 ```

@@ -12,8 +12,15 @@ const PORT = process.env.PORT || 3000;
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 });
 
-app.use(cors());
-app.use(express.json());
+if (process.env.NODE_ENV !== 'production') {
+  app.use(cors());
+}
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() });
+});
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/thumbnails', express.static(path.join(__dirname, 'thumbnails')));
@@ -59,6 +66,15 @@ async function start() {
   console.log('Database initialized');
 
   mountRoutes();
+
+  const publicDir = path.join(__dirname, 'public');
+  if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(publicDir, 'index.html'));
+    });
+  }
+
   app.use(errorHandler);
 
   app.listen(PORT, () => {
