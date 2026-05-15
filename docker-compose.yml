@@ -2,8 +2,7 @@ services:
   app:
     build: .
     container_name: steam-gallery
-    ports:
-      - "3000:3000"
+    network_mode: host
     environment:
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}
       - NODE_ENV=production
