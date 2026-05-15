@@ -46,3 +46,5 @@ __pycache__/
 
 # 空占位数据库
 server/db/screenshots.db
+client/vite-home-logo.err.log
+client/vite-home-logo.out.log
