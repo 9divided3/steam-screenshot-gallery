@@ -26,6 +26,9 @@ interface ProfileData {
   };
 }
 
+type SocialListType = 'followers' | 'following';
+type SocialUser = { id: number; username: string; display_name: string; avatar_url: string };
+
 function formatBytes(bytes: number) {
   if (bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -60,25 +63,37 @@ export default function Profile() {
   const avatarFileRef = useRef<File | null>(null);
 
   // Followers/following list modal
-  const [listModal, setListModal] = useState<'followers' | 'following' | null>(null);
-  const [listUsers, setListUsers] = useState<Array<{ id: number; username: string; display_name: string; avatar_url: string }>>([]);
-  const [listLoading, setListLoading] = useState(false);
+  const [listModal, setListModal] = useState<SocialListType | null>(null);
+  const [socialLists, setSocialLists] = useState<Record<SocialListType, SocialUser[]>>({ followers: [], following: [] });
+  const [socialLoaded, setSocialLoaded] = useState<Record<SocialListType, boolean>>({ followers: false, following: false });
+  const [socialLoading, setSocialLoading] = useState<Record<SocialListType, boolean>>({ followers: false, following: false });
+  const [socialDirection, setSocialDirection] = useState<1 | -1>(1);
 
-  const openList = async (type: 'followers' | 'following') => {
-    setListModal(type);
-    setListLoading(true);
+  const loadSocialList = useCallback(async (type: SocialListType, force = false) => {
+    if (!force && (socialLoaded[type] || socialLoading[type])) return;
+    setSocialLoading((prev) => ({ ...prev, [type]: true }));
     const uid = targetUserId || myUser?.id;
     try {
       const data = type === 'followers'
         ? await followsApi.followers(uid)
         : await followsApi.following(uid);
-      setListUsers(data.users || []);
+      setSocialLists((prev) => ({ ...prev, [type]: data.users || [] }));
+      setSocialLoaded((prev) => ({ ...prev, [type]: true }));
     } catch (err) {
       console.error('Failed to load list:', err);
-      setListUsers([]);
+      setSocialLists((prev) => ({ ...prev, [type]: [] }));
+      setSocialLoaded((prev) => ({ ...prev, [type]: true }));
     } finally {
-      setListLoading(false);
+      setSocialLoading((prev) => ({ ...prev, [type]: false }));
     }
+  }, [myUser?.id, socialLoaded, socialLoading, targetUserId]);
+
+  const openList = (type: SocialListType) => {
+    if (listModal && listModal !== type) {
+      setSocialDirection(type === 'following' ? 1 : -1);
+    }
+    setListModal(type);
+    loadSocialList(type);
   };
 
   const fetchProfile = useCallback(async (showLoading = true) => {
@@ -557,13 +572,15 @@ export default function Profile() {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="profile-modal-header">
-            <div className="flex items-start justify-between gap-4 px-5 pt-5">
+            <div className="flex items-start justify-between gap-4 px-6 pt-6">
               <div className="min-w-0">
-                <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-cyan-100/75">Social</p>
-                <h2 className="mt-1 font-display text-2xl text-white">
+                <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyan-100/70">Social circle</p>
+                <h2 className="mt-2 font-display text-[1.7rem] leading-none text-white">
                   {listModal === 'followers' ? '粉丝' : '关注'}
                 </h2>
-                <p className="mt-1 truncate text-xs text-white/60">{displayName}</p>
+                <p className="mt-2 max-w-[18rem] truncate text-sm leading-relaxed text-white/64">
+                  {displayName} 的社交连接
+                </p>
               </div>
               <button
                 onClick={() => setListModal(null)}
@@ -575,86 +592,42 @@ export default function Profile() {
                 </svg>
               </button>
             </div>
-            <div className="profile-social-tabs mx-5 mt-4 mb-4">
+            <div
+              className="profile-social-tabs mx-5 mt-4 mb-4"
+              style={{ ['--social-tab-index' as string]: listModal === 'following' ? 1 : 0 }}
+            >
               <button
                 type="button"
                 onClick={() => listModal !== 'followers' && openList('followers')}
                 className={`profile-social-tab ${listModal === 'followers' ? 'profile-social-tab-active' : ''}`}
               >
-                <span className="tabular-nums">{profile?.followers_count ?? 0}</span>
-                <span>粉丝</span>
+                <span className="profile-social-tab-count tabular-nums">{profile?.followers_count ?? 0}</span>
+                <span className="profile-social-tab-label">粉丝</span>
               </button>
               <button
                 type="button"
                 onClick={() => listModal !== 'following' && openList('following')}
                 className={`profile-social-tab ${listModal === 'following' ? 'profile-social-tab-active' : ''}`}
               >
-                <span className="tabular-nums">{profile?.following_count ?? 0}</span>
-                <span>关注</span>
+                <span className="profile-social-tab-count tabular-nums">{profile?.following_count ?? 0}</span>
+                <span className="profile-social-tab-label">关注</span>
               </button>
             </div>
           </div>
-          <div className="profile-modal-list flex-1 overflow-y-auto px-3 py-3">
-            <div className="mb-3 flex items-center justify-between px-2 text-xs text-white/60">
-              <span>{listModal === 'followers' ? '关注你的人' : '你关注的人'}</span>
-              <span>{listUsers.length} 位</span>
+          <div className="profile-modal-list flex-1 overflow-hidden px-3 py-3">
+            <div className="profile-social-stage">
+              {(['followers', 'following'] as SocialListType[]).map((type) => (
+                <SocialListPane
+                  key={type}
+                  type={type}
+                  active={listModal === type}
+                  direction={socialDirection}
+                  users={socialLists[type]}
+                  loading={socialLoading[type] && !socialLoaded[type]}
+                  onClose={() => setListModal(null)}
+                />
+              ))}
             </div>
-            {listLoading ? (
-              <div className="space-y-2 p-1">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="profile-modal-user-row">
-                    <div className="skeleton w-12 h-12 rounded-full shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="skeleton h-4 w-32" />
-                      <div className="skeleton h-3 w-20" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : listUsers.length === 0 ? (
-              <div className="profile-social-empty">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.06]">
-                  <svg className="h-6 w-6 text-white/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.1 9.1 0 0 0 3.75.78 6.75 6.75 0 0 0-13.5 0 9.1 9.1 0 0 0 3.75-.78m6 0a9.08 9.08 0 0 1-6 0m6 0a6.75 6.75 0 1 0-6 0M15 8.25a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                  </svg>
-                </div>
-                <p className="text-sm text-white/75">
-                  {listModal === 'followers' ? '还没有粉丝' : '还没有关注任何人'}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {listUsers.map((u) => (
-                  <Link
-                    key={u.id}
-                    to={`/profile/${u.id}`}
-                    onClick={() => setListModal(null)}
-                    className="profile-modal-user-row group"
-                  >
-                    {u.avatar_url ? (
-                      <img
-                        src={u.avatar_url}
-                        alt=""
-                        className="w-12 h-12 rounded-full object-cover shrink-0 ring-1 ring-white/[0.16]"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-white/[0.08] flex items-center justify-center shrink-0 ring-1 ring-white/[0.16]">
-                        <span className="text-base text-white/70 font-display">
-                          {(u.display_name?.[0] || u.username[0]).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-semibold truncate group-hover:text-cyan-100 transition-colors">
-                        {u.display_name || u.username}
-                      </p>
-                      <p className="text-xs text-white/55 truncate">@{u.username}</p>
-                    </div>
-                    <span className="profile-social-open">主页</span>
-                  </Link>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>,
@@ -694,5 +667,88 @@ function StatCard({
         {value}
       </p>
     </div>
+  );
+}
+
+function SocialListPane({
+  type,
+  active,
+  direction,
+  users,
+  loading,
+  onClose,
+}: {
+  type: SocialListType;
+  active: boolean;
+  direction: 1 | -1;
+  users: SocialUser[];
+  loading: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <section
+      className={`profile-social-pane ${active ? 'profile-social-pane-active' : 'profile-social-pane-idle'}`}
+      style={{ ['--social-direction' as string]: direction }}
+      aria-hidden={!active}
+    >
+      <div className="profile-social-pane-head">
+        <div>
+          <p className="profile-social-pane-title">{type === 'followers' ? '关注你的人' : '你关注的人'}</p>
+        </div>
+        <span className="profile-social-pane-count">{users.length} 位</span>
+      </div>
+      {loading ? (
+        <div className="space-y-2 p-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="profile-modal-user-row">
+              <div className="skeleton w-12 h-12 rounded-full shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="skeleton h-4 w-32" />
+                <div className="skeleton h-3 w-20" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : users.length === 0 ? (
+        <div className="profile-social-empty">
+          <p className="profile-social-empty-title">
+            {type === 'followers' ? '还没有粉丝' : '还没有关注任何人'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {users.map((u, i) => (
+            <Link
+              key={u.id}
+              to={`/profile/${u.id}`}
+              onClick={onClose}
+              className="profile-modal-user-row group"
+              style={{ ['--row-index' as string]: i }}
+            >
+              {u.avatar_url ? (
+                <img
+                  src={u.avatar_url}
+                  alt=""
+                  className="w-12 h-12 rounded-full object-cover shrink-0 ring-1 ring-white/[0.16]"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-white/[0.08] flex items-center justify-center shrink-0 ring-1 ring-white/[0.16]">
+                  <span className="text-base text-white/70 font-display">
+                    {(u.display_name?.[0] || u.username[0]).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-white font-semibold truncate group-hover:text-cyan-100 transition-colors">
+                  {u.display_name || u.username}
+                </p>
+                <p className="text-xs text-white/55 truncate">@{u.username}</p>
+              </div>
+              <span className="profile-social-open">主页</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

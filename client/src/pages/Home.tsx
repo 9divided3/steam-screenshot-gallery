@@ -135,10 +135,16 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const heroCopyStyle = {
-    transform: `translateY(${heroSinkProgress * 34}px) scale(${1 - heroSinkProgress * 0.035})`,
-    opacity: 1 - heroSinkProgress * 0.52,
-    filter: `blur(${heroSinkProgress * 1.6}px)`,
+  const heroLogoStyle = {
+    transform: `translateY(${heroSinkProgress * 118}px) scale(${1 - heroSinkProgress * 0.085})`,
+    opacity: 1 - heroSinkProgress * 0.18,
+    filter: `blur(${heroSinkProgress * 0.9}px)`,
+  };
+
+  const heroTextStyle = {
+    transform: `translateY(${heroSinkProgress * 42}px) scale(${1 - heroSinkProgress * 0.025})`,
+    opacity: 1 - heroSinkProgress * 0.62,
+    filter: `blur(${heroSinkProgress * 1.8}px)`,
   };
 
   const showcaseSinkStyle = {
@@ -148,7 +154,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section ref={heroRef} className="home-sink-hero relative overflow-hidden pt-12 pb-8 md:pt-20 md:pb-14">
+      <section ref={heroRef} className="home-sink-hero relative overflow-hidden pt-12 pb-10 md:pt-20 md:pb-16">
         {/* Ambient orbs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
@@ -178,90 +184,70 @@ export default function Home() {
         </div>
 
         <div
-          className="home-sink-copy max-w-4xl mx-auto px-6 text-center relative"
-          style={heroCopyStyle}
+          className="home-sink-copy max-w-5xl mx-auto px-6 text-center relative"
         >
-          {/* Logo with modern accent bar */}
+          {/* Logo mark */}
           <div
-            className="inline-block mb-5"
-            style={{ animation: 'fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+            className="home-logo-sink-layer inline-flex"
+            style={heroLogoStyle}
             onMouseEnter={() => setLogoHovered(true)}
             onMouseLeave={() => setLogoHovered(false)}
           >
-            <h1
-              className={`font-display text-4xl md:text-6xl lg:text-7xl tracking-tighter
-                         transition-all duration-700 ease-out cursor-default select-none
-                         ${logoHovered ? 'tracking-wide scale-[1.03]' : 'tracking-tighter'}`}
-            >
-              <span className="transition-all duration-700 ease-out"
-                style={{
-                  color: logoHovered ? '#e8c49a' : '#e8c49a',
-                  textShadow: logoHovered
-                    ? '0 0 40px rgba(232,196,154,0.30)'
-                    : '0 0 24px rgba(232,196,154,0.25)',
-                }}>
-                光
-              </span>
-              <span className="transition-all duration-700 ease-out delay-75"
-                style={{
-                  color: logoHovered ? '#f0d4b0' : '#ddc8a8',
-                  textShadow: logoHovered
-                    ? '0 0 40px rgba(240,212,176,0.30)'
-                    : '0 0 20px rgba(232,196,154,0.18)',
-                }}>
-                匣
-              </span>
+          <div
+            className={`home-logo-stage home-logo-mark inline-flex flex-col items-center justify-center mb-6 sm:mb-7 ${
+              logoHovered ? 'home-logo-mark-hovered' : ''
+            }`}
+            style={{ animation: 'fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+          >
+            <h1 className="home-logo-word home-logo-word-redesign cursor-default select-none" aria-label="光匣">
+              <span className="home-logo-glyph">光</span>
+              <span className="home-logo-glyph">匣</span>
             </h1>
-            {/* Accent bar */}
-            <div className="flex justify-center mt-2">
-              <div
-                className="h-0.5 transition-all duration-700 ease-out rounded-full"
-                style={{
-                  width: logoHovered ? '100%' : '45%',
-                  opacity: logoHovered ? 1 : 0.55,
-                  background: 'linear-gradient(90deg, transparent 0%, #e8c49a 50%, transparent 100%)',
-                }}
-              />
-            </div>
+            <div className="home-logo-accent" />
           </div>
+          </div>
+          <div style={heroTextStyle}>
           <p
-            className="text-lg text-text-secondary max-w-lg mx-auto mb-10 text-balance"
+            className="home-logo-subtitle text-base sm:text-lg max-w-lg mx-auto mb-10 text-balance"
             style={{ animation: 'fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards', opacity: 0 }}
           >
             记录和分享游戏中的精彩瞬间
           </p>
+          </div>
         </div>
       </section>
 
       {/* Carousel with Ken Burns */}
       {carouselItems.length > 0 && (
         <section
-          className="home-sink-showcase max-w-7xl mx-auto px-6 pb-10"
+          className="home-sink-showcase home-product-carousel max-w-7xl mx-auto px-6 pb-10"
           style={{
             animation: 'fadeUp 0.7s ease-out 0.3s forwards',
             opacity: 0,
             ...showcaseSinkStyle,
           }}
         >
-          <div className="relative aspect-video rounded-2xl overflow-hidden glass shadow-2xl shadow-black/30 animate-glow-pulse">
+          <div
+            className="home-carousel-frame"
+            style={{ '--carousel-count': carouselItems.length } as React.CSSProperties}
+          >
             {carouselItems.map((item, i) => (
               <div
                 key={item.id}
-                className={`image-hover-card absolute inset-0 transition-all duration-700 ease-out ${
-                  i === carouselIndex ? 'opacity-100' : 'opacity-0'
+                className={`home-carousel-slide ${
+                  i === carouselIndex ? 'home-carousel-slide-active' : 'home-carousel-slide-idle'
                 }`}
               >
                 <img
                   src={screenshotUrl(item.id)}
                   alt={item.title}
-                  className={`w-full h-full object-cover transition-all duration-[7s] ease-out ${
-                    i === carouselIndex ? 'animate-ken-burns' : ''
-                  }`}
+                  className="home-carousel-image"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <p className="text-sm text-white/90 font-medium">{item.game_name || '未知游戏'}</p>
-                  <p className="text-xs text-white/85 mt-0.5">by {item.display_name || item.username}</p>
+                <div className="home-carousel-shade" />
+                <div className="home-carousel-copy">
+                  <p className="home-carousel-kicker">精选展示</p>
+                  <h2 className="home-carousel-title">{item.game_name || '未知游戏'}</h2>
+                  <p className="home-carousel-meta">by {item.display_name || item.username}</p>
                 </div>
               </div>
             ))}
@@ -269,7 +255,7 @@ export default function Home() {
               <>
                 <button
                   onClick={() => setCarouselIndex((i) => wrapIndex(i, -1, carouselItems.length))}
-                  className="btn-icon-round absolute left-4 top-1/2 z-10 h-11 w-11 -translate-y-1/2 hover:!border-cyan-200/70 hover:!text-cyan-100"
+                  className="home-carousel-arrow home-carousel-arrow-prev"
                   aria-label="上一张"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -278,7 +264,7 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => setCarouselIndex((i) => wrapIndex(i, 1, carouselItems.length))}
-                  className="btn-icon-round absolute right-4 top-1/2 z-10 h-11 w-11 -translate-y-1/2 hover:!border-cyan-200/70 hover:!text-cyan-100"
+                  className="home-carousel-arrow home-carousel-arrow-next"
                   aria-label="下一张"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,20 +273,23 @@ export default function Home() {
                 </button>
               </>
             )}
-          </div>
-          {carouselItems.length > 1 && (
-            <div className="flex justify-center gap-2 mt-4">
+            {carouselItems.length > 1 && (
+              <div className="home-carousel-progress">
               {carouselItems.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setCarouselIndex(i)}
-                  className={`rounded-full transition-all duration-300 cursor-pointer ${
-                    i === carouselIndex
-                      ? 'bg-cyan-300/80 w-6 h-2 shadow-lg shadow-cyan-300/20'
-                      : 'bg-white/30 hover:bg-white/50 w-2 h-2'
-                  }`}
+                  className={`home-carousel-dot ${i === carouselIndex ? 'home-carousel-dot-active' : ''}`}
+                  aria-label={`切换到第 ${i + 1} 张`}
                 />
               ))}
+              </div>
+            )}
+          </div>
+          {carouselItems.length > 1 && (
+            <div className="home-carousel-count">
+              <span>{String(carouselIndex + 1).padStart(2, '0')}</span>
+              <span>{String(carouselItems.length).padStart(2, '0')}</span>
             </div>
           )}
         </section>
@@ -335,7 +324,7 @@ export default function Home() {
             <h2 className="font-display text-xl text-text-primary">最新公开展示</h2>
             <Link to="/explore" className="text-sm text-white hover:text-white/80 transition-colors duration-200 group">
               查看全部
-              <span className="inline-block ml-1 transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+              <span className="inline-block ml-1 transition-transform duration-200 group-hover:translate-x-0.5">-&gt;</span>
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -375,4 +364,5 @@ export default function Home() {
     </div>
   );
 }
+
 

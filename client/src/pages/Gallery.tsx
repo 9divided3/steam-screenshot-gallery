@@ -23,6 +23,7 @@ export default function Gallery() {
   const [sort, setSort] = useState(() => localStorage.getItem('gallery_sort') || 'date_desc');
   const [columns, setColumns] = useState(() => parseInt(localStorage.getItem('gallery_columns') || '5'));
   const [actualColumns, setActualColumns] = useState(columns);
+  const [pageSize, setPageSize] = useState(Math.ceil(40 / columns) * columns);
   const [columnOptions, setColumnOptions] = useState<{ value: string; label: string }[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -31,10 +32,14 @@ export default function Gallery() {
     const update = () => {
       const w = window.innerWidth;
       if (w < 640) {
-        setActualColumns(Math.min(columns, 2));
+        const mobileColumns = Math.min(columns, 2);
+        setActualColumns(mobileColumns);
+        setPageSize(10);
         setColumnOptions([{ value: '2', label: '2 列' }]);
       } else if (w < 1024) {
-        setActualColumns(Math.min(columns, 4));
+        const tabletColumns = Math.min(columns, 4);
+        setActualColumns(tabletColumns);
+        setPageSize(Math.ceil(32 / tabletColumns) * tabletColumns);
         setColumnOptions([
           { value: '2', label: '2 列' },
           { value: '3', label: '3 列' },
@@ -42,6 +47,7 @@ export default function Gallery() {
         ]);
       } else {
         setActualColumns(columns);
+        setPageSize(Math.ceil(40 / columns) * columns);
         setColumnOptions([
           { value: '3', label: '3 列' },
           { value: '4', label: '4 列' },
@@ -61,8 +67,7 @@ export default function Gallery() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const limit = Math.ceil(40 / columns) * columns;
-      const params: Record<string, string> = { page: String(page), limit: String(limit), sort };
+      const params: Record<string, string> = { page: String(page), limit: String(pageSize), sort };
       if (publicFilter) params['public'] = publicFilter;
       if (gameFilter) params['game_id'] = gameFilter;
       if (search) params['search'] = search;
@@ -75,7 +80,7 @@ export default function Gallery() {
     } finally {
       setLoading(false);
     }
-  }, [page, publicFilter, gameFilter, search, sort, columns]);
+  }, [page, publicFilter, gameFilter, search, sort, pageSize]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -187,8 +192,7 @@ export default function Gallery() {
 
   const lightbox = useLightbox(lightboxImages);
 
-  const limit = Math.ceil(40 / columns) * columns;
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = Math.ceil(total / pageSize);
   const hasActiveFilters = Boolean(search || gameFilter || publicFilter || sort !== 'date_desc');
 
   return (
@@ -261,7 +265,6 @@ export default function Gallery() {
                 aria-label="打开筛选"
               >
                 <FilterIcon />
-                {hasActiveFilters && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-black sm:hidden" />}
               </button>
             </div>
 

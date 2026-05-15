@@ -130,8 +130,8 @@ export default function Explore() {
         className="mb-5 sm:mb-7 rounded-2xl border border-white/[0.16] bg-black/55 p-3 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-4"
         style={{ animation: 'pageEnter 0.5s ease-out 0.1s forwards', opacity: 0 }}
       >
-        <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 lg:grid-cols-[minmax(240px,360px)_minmax(180px,260px)_auto] lg:items-center">
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(180px,1.3fr)_minmax(150px,1fr)_minmax(180px,1.15fr)_140px_96px_auto] lg:items-center lg:gap-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 lg:contents">
             <label className="sr-only" htmlFor="explore-search">搜索截图</label>
             <input
               id="explore-search"
@@ -162,7 +162,7 @@ export default function Explore() {
             </button>
           </div>
 
-          <div className={`${filtersOpen ? 'grid' : 'hidden'} grid-cols-2 gap-2 border-t border-white/[0.12] pt-3 sm:grid sm:grid-cols-[minmax(180px,260px)_150px_96px_auto] sm:items-center`}>
+          <div className={`${filtersOpen ? 'grid' : 'hidden'} grid-cols-2 gap-2 border-t border-white/[0.12] pt-3 sm:grid sm:grid-cols-[minmax(180px,260px)_150px_96px_auto] sm:items-center lg:contents lg:border-0 lg:pt-0`}>
             <CustomSelect
               value={gameFilter}
               onChange={(v) => { setGameFilter(v); setPage(1); }}

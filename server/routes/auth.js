@@ -10,7 +10,7 @@ function generateAuthResponse(user) {
   const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
   return {
     token,
-    user: { id: user.id, username: user.username, display_name: user.display_name },
+    user: { id: user.id, username: user.username, display_name: user.display_name, avatar_url: user.avatar_url },
   };
 }
 
@@ -38,14 +38,14 @@ router.post('/register', async (req, res) => {
 
   run('INSERT INTO user_config (user_id) VALUES (?)', [userId]);
 
-  const newUser = get('SELECT id, username, display_name FROM users WHERE id = ?', [userId]);
+  const newUser = get('SELECT id, username, display_name, avatar_url FROM users WHERE id = ?', [userId]);
   res.status(201).json(generateAuthResponse(newUser));
 });
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
-  const user = get('SELECT id, username, password_hash FROM users WHERE username = ?', [username]);
+  const user = get('SELECT id, username, display_name, avatar_url, password_hash FROM users WHERE username = ?', [username]);
   if (!user) {
     return res.status(401).json({ error: '用户名或密码错误' });
   }
@@ -59,7 +59,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.get('/me', authMiddleware, (req, res) => {
-  const user = get('SELECT id, username, display_name FROM users WHERE id = ?', [req.user.id]);
+  const user = get('SELECT id, username, display_name, avatar_url FROM users WHERE id = ?', [req.user.id]);
   res.json({ user: user || req.user });
 });
 
