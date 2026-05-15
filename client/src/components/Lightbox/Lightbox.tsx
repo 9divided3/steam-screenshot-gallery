@@ -1,7 +1,9 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { profile as profileApi } from '../../api/client';
+import { screenshotUrl } from '../../utils/media';
 import FollowButton from '../FollowButton/FollowButton';
 
 interface LightboxImage {
@@ -26,6 +28,7 @@ interface LightboxProps {
 }
 
 const SWIPE_THRESHOLD_PX = 60;
+const CLOSE_ANIMATION_MS = 260;
 
 function stopPropagation(fn: () => void) {
   return (e: React.MouseEvent) => { e.stopPropagation(); fn(); };
@@ -35,10 +38,13 @@ export default function Lightbox({ images, currentIndex, onClose, onPrev, onNext
   const { user: myUser } = useAuth();
   const current = images[currentIndex];
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [navigationDirection, setNavigationDirection] = useState<'prev' | 'next'>('next');
   const [swipeStartX, setSwipeStartX] = useState<number | null>(null);
   const [showcased, setShowcased] = useState(false);
   const [showcaseLoading, setShowcaseLoading] = useState(false);
   const [showcaseError, setShowcaseError] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
 
   const isOwnImage = !!(myUser && current.user_id && current.user_id === myUser.id);
 
@@ -86,13 +92,33 @@ export default function Lightbox({ images, currentIndex, onClose, onPrev, onNext
     setImageLoaded(false);
   }, [currentIndex]);
 
+  const handleRequestClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      onClose();
+    }, CLOSE_ANIMATION_MS);
+  }, [isClosing, onClose]);
+
+  const showPrev = useCallback(() => {
+    if (isClosing) return;
+    setNavigationDirection('prev');
+    onPrev();
+  }, [isClosing, onPrev]);
+
+  const showNext = useCallback(() => {
+    if (isClosing) return;
+    setNavigationDirection('next');
+    onNext();
+  }, [isClosing, onNext]);
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     switch (e.key) {
-      case 'Escape': onClose(); break;
-      case 'ArrowLeft': onPrev(); break;
-      case 'ArrowRight': onNext(); break;
+      case 'Escape': handleRequestClose(); break;
+      case 'ArrowLeft': showPrev(); break;
+      case 'ArrowRight': showNext(); break;
     }
-  }, [onClose, onPrev, onNext]);
+  }, [handleRequestClose, showPrev, showNext]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
@@ -103,6 +129,14 @@ export default function Lightbox({ images, currentIndex, onClose, onPrev, onNext
     };
   }, [handleKeyDown]);
 
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleTouchStart = (e: React.TouchEvent) => {
     setSwipeStartX(e.touches[0].clientX);
   };
@@ -110,43 +144,58 @@ export default function Lightbox({ images, currentIndex, onClose, onPrev, onNext
     if (swipeStartX === null) return;
     const diff = e.changedTouches[0].clientX - swipeStartX;
     if (Math.abs(diff) > SWIPE_THRESHOLD_PX) {
-      diff > 0 ? onPrev() : onNext();
+      diff > 0 ? showPrev() : showNext();
     }
     setSwipeStartX(null);
   };
 
   if (!current) return null;
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-[100] bg-black/15 backdrop-blur-lg flex flex-col"
-      style={{ animation: 'fadeIn 0.25s ease-out forwards' }}
-      onClick={onClose}
+      className="fixed inset-0 z-[9999] flex h-[100dvh] w-screen flex-col overflow-hidden bg-slate-950/[0.42] backdrop-blur-[32px]"
+      style={{
+        animation: isClosing
+          ? `lightboxBackdropOut ${CLOSE_ANIMATION_MS}ms cubic-bezier(0.7, 0, 0.84, 0) forwards`
+          : 'lightboxBackdropIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+      }}
+      onClick={handleRequestClose}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(125,211,252,0.35),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(216,180,254,0.28),transparent_34%),radial-gradient(circle_at_52%_92%,rgba(45,212,191,0.22),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.28),rgba(2,6,23,0.58))]" />
+      <div className="pointer-events-none absolute inset-0 bg-white/[0.035] [mask-image:linear-gradient(135deg,rgba(0,0,0,0.9),rgba(0,0,0,0.18),rgba(0,0,0,0.75))]" />
       <button
-        onClick={stopPropagation(onClose)}
-        className="absolute top-5 right-5 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 text-white/80 hover:text-white text-2xl transition-all duration-200 hover:scale-110 active:scale-90"
+        onClick={stopPropagation(handleRequestClose)}
+        className="btn-icon-round btn-close-red absolute top-4 right-4 z-20 h-11 w-11 text-2xl sm:top-5 sm:right-5"
         aria-label="关闭"
       >
         &times;
       </button>
 
       <div
-        className="flex-1 flex items-center justify-center p-6 md:p-12"
+        className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-6 md:p-12"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative">
+        <div
+          className="relative rounded-[26px] border border-white/[0.16] bg-white/[0.08] p-1 shadow-2xl shadow-black/60 backdrop-blur-3xl"
+          style={{
+            animation: isClosing
+              ? `lightboxImageOut ${CLOSE_ANIMATION_MS}ms cubic-bezier(0.7, 0, 0.84, 0) forwards`
+              : 'lightboxImageIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          }}
+        >
           {!imageLoaded && (
             <div className="w-48 h-48 skeleton rounded-xl" />
           )}
           <img
-            src={`/uploads/${current.file_path}`}
+            src={screenshotUrl(current.id)}
             alt={current.title || 'Screenshot'}
-            className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+            className="max-w-full max-h-[82vh] object-contain rounded-[22px] shadow-2xl shadow-black/70"
             style={{
-              animation: imageLoaded ? 'scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'none',
+              animation: imageLoaded
+                ? `lightboxImageSwitch${navigationDirection === 'prev' ? 'Prev' : 'Next'} 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards`
+                : 'none',
               opacity: imageLoaded ? undefined : 0,
             }}
             key={current.id}
@@ -158,36 +207,43 @@ export default function Lightbox({ images, currentIndex, onClose, onPrev, onNext
       {images.length > 1 && (
         <>
           <button
-            onClick={stopPropagation(onPrev)}
-            className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-2xl transition-all duration-200 hover:scale-110 active:scale-90"
+            onClick={stopPropagation(showPrev)}
+            className="btn-icon-round absolute left-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 hover:!border-cyan-200/70 hover:!text-cyan-100 sm:inline-flex md:left-8"
             aria-label="上一张"
-            style={{ animation: 'fadeIn 0.3s ease-out 0.2s forwards', opacity: 0 }}
           >
-            &#8249;
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
           </button>
           <button
-            onClick={stopPropagation(onNext)}
-            className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-2xl transition-all duration-200 hover:scale-110 active:scale-90"
+            onClick={stopPropagation(showNext)}
+            className="btn-icon-round absolute right-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 hover:!border-cyan-200/70 hover:!text-cyan-100 sm:inline-flex md:right-8"
             aria-label="下一张"
-            style={{ animation: 'fadeIn 0.3s ease-out 0.2s forwards', opacity: 0 }}
           >
-            &#8250;
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </button>
         </>
       )}
 
       <div
-        className="px-6 py-4 flex items-center justify-between text-sm border-t border-white/[0.06] bg-black/10 backdrop-blur-md"
-        style={{ animation: 'fadeUp 0.4s ease-out 0.25s forwards', opacity: 0 }}
+        className="relative z-20 mx-3 mb-3 flex flex-col items-start justify-between gap-2 rounded-2xl border border-white/[0.18] bg-white/[0.16] px-4 py-3 text-sm shadow-2xl shadow-black/45 backdrop-blur-3xl sm:mx-5 sm:mb-5 sm:flex-row sm:items-center sm:px-5 sm:py-4"
+        style={{
+          animation: isClosing
+            ? `lightboxTrayOut ${CLOSE_ANIMATION_MS}ms cubic-bezier(0.7, 0, 0.84, 0) forwards`
+            : 'lightboxTrayIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.08s forwards',
+          opacity: isClosing ? undefined : 0,
+        }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           {current.game_name && (
-            <span className="text-white font-medium">{current.game_name}</span>
+            <span className="text-white font-medium text-xs sm:text-sm">{current.game_name}</span>
           )}
           {current.username && current.user_id && (
             <Link
               to={`/profile/${current.user_id}`}
-              className="text-white/80 hover:text-accent transition-colors duration-200"
+              className="text-white/80 hover:text-cyan-100 transition-colors duration-200 text-xs sm:text-sm"
               onClick={(e) => e.stopPropagation()}
             >
               by {current.display_name || current.username}
@@ -200,11 +256,11 @@ export default function Lightbox({ images, currentIndex, onClose, onPrev, onNext
             <button
               onClick={toggleShowcase}
               disabled={showcaseLoading}
-              className={`text-xs font-medium rounded-lg px-2.5 py-1.5 transition-all duration-200 flex items-center gap-1 ${
+              className={`btn-chip ${
                 showcased
-                  ? 'bg-accent/20 text-accent border border-accent/30 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30'
-                  : 'bg-black/30 text-white/80 hover:bg-black/50 hover:text-white'
-              } disabled:opacity-50`}
+                  ? '!border-cyan-100/85 !bg-cyan-400/[0.55] !text-white hover:!border-red-300/80 hover:!bg-red-500/[0.52] hover:!text-white'
+                  : ''
+              }`}
               title={showcased ? '从主页移除' : '展示到个人主页'}
             >
               {showcaseLoading ? '...' : showcased ? '已展示' : (
@@ -222,13 +278,28 @@ export default function Lightbox({ images, currentIndex, onClose, onPrev, onNext
             <span className="text-xs text-red-400 animate-toast-in">{showcaseError}</span>
           )}
         </div>
-        <div className="flex items-center gap-5 text-white/80 font-mono text-xs">
+        <div className="flex items-center gap-3 sm:gap-5 text-white/80 font-mono text-xs">
+          <a
+            href={screenshotUrl(current.id)}
+            download
+            onClick={(e) => e.stopPropagation()}
+            className="btn-download min-h-9 px-3 py-1.5 text-xs"
+            title="下载图片"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            <span className="hidden sm:inline">下载</span>
+          </a>
           {current.width && current.height && (
-            <span>{current.width} &times; {current.height}</span>
+            <span className="hidden sm:inline">{current.width} &times; {current.height}</span>
           )}
           <span>{currentIndex + 1} / {images.length}</span>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }

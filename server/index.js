@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { init } = require('./db/database');
+const { init, get } = require('./db/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,11 +19,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
+  try {
+    const row = get('SELECT 1 AS ok');
+    res.json({ status: row ? 'ok' : 'degraded', db: !!row, timestamp: Date.now() });
+  } catch {
+    res.status(503).json({ status: 'error', db: false, timestamp: Date.now() });
+  }
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/thumbnails', express.static(path.join(__dirname, 'thumbnails')));
+app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads', 'avatars')));
 
 const authRouter = require('./routes/auth');
 const screenshotsRouter = require('./routes/screenshots');

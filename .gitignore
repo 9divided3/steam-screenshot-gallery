@@ -2,9 +2,12 @@
 node_modules/
 
 # 数据库和密钥（每次启动自动生成）
+data/
 server/data/
 
 # 用户上传和生成的文件
+uploads/
+thumbnails/
 server/uploads/
 server/thumbnails/
 
@@ -13,6 +16,9 @@ server/debug/
 
 # 构建产物
 client/dist/
+client/tsconfig.tsbuildinfo
+*.tsbuildinfo
+*.tar.gz
 
 # 环境变量
 .env

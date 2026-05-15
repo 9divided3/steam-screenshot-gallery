@@ -1,8 +1,9 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const archiver = require('archiver');
 const { get, run, all } = require('../db/database');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, optionalAuth } = require('../middleware/auth');
 const { buildOrderBy, buildPlaceholders } = require('../utils/queryHelpers');
 
 const router = express.Router();
@@ -216,6 +217,126 @@ router.put('/batch-game', authMiddleware, (req, res) => {
     game_id, ...ids, userId,
   ]);
   res.json({ success: true });
+});
+
+// ──────────────────────────────────────────────────────────
+//  POST /batch-download  —  batch download as ZIP
+// ──────────────────────────────────────────────────────────
+
+function sanitizeFilename(name) {
+  if (!name) return 'untitled';
+  return name.replace(/[\\/:*?"<>|]/g, '_').trim() || 'untitled';
+}
+
+function getAccessibleScreenshot(req, res) {
+  const id = parseInt(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: '无效的截图 ID' });
+    return null;
+  }
+
+  const row = get('SELECT id, user_id, file_path, thumbnail_path, is_public FROM screenshots WHERE id = ?', [id]);
+  if (!row) {
+    res.status(404).json({ error: '截图不存在' });
+    return null;
+  }
+  if (!row.is_public && row.user_id !== req.user?.id) {
+    res.status(403).json({ error: '无权访问该截图' });
+    return null;
+  }
+  return row;
+}
+
+router.get('/:id/file', optionalAuth, (req, res) => {
+  const row = getAccessibleScreenshot(req, res);
+  if (!row) return;
+
+  const absPath = path.join(uploadsDir, path.basename(row.file_path));
+  if (!fs.existsSync(absPath)) {
+    return res.status(404).json({ error: '截图文件不存在' });
+  }
+  res.sendFile(absPath);
+});
+
+router.get('/:id/thumbnail', optionalAuth, (req, res) => {
+  const row = getAccessibleScreenshot(req, res);
+  if (!row) return;
+
+  const relPath = row.thumbnail_path || row.file_path;
+  const dir = row.thumbnail_path ? thumbsDir : uploadsDir;
+  const absPath = path.join(dir, path.basename(relPath));
+  if (!fs.existsSync(absPath)) {
+    return res.status(404).json({ error: '缩略图文件不存在' });
+  }
+  res.sendFile(absPath);
+});
+
+router.post('/batch-download', authMiddleware, (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: '请提供截图 ID 列表' });
+  }
+  const userId = req.user.id;
+  const placeholders = buildPlaceholders(ids);
+
+  const rows = all(
+    `SELECT s.file_path, s.title, g.name as game_name
+     FROM screenshots s
+     LEFT JOIN games g ON s.game_id = g.id
+     WHERE s.id IN (${placeholders}) AND s.user_id = ?`,
+    [...ids, userId]
+  );
+
+  if (rows.length === 0) {
+    return res.status(404).json({ error: '未找到可下载的截图' });
+  }
+  if (rows.length < ids.length) {
+    return res.status(403).json({ error: '部分截图不属于您' });
+  }
+
+  const files = [];
+  const usedNames = new Set();
+  for (const row of rows) {
+    const absPath = path.join(uploadsDir, path.basename(row.file_path));
+    if (!fs.existsSync(absPath)) continue;
+
+    const game = sanitizeFilename(row.game_name);
+    const title = sanitizeFilename(row.title);
+    const ext = path.extname(row.file_path) || '.jpg';
+    const baseName = game ? `${game} - ${title}` : title;
+    let entryName = `${baseName}${ext}`;
+    if (usedNames.has(entryName)) {
+      for (let i = 2; ; i++) {
+        entryName = `${baseName} (${i})${ext}`;
+        if (!usedNames.has(entryName)) break;
+      }
+    }
+    usedNames.add(entryName);
+    files.push({ absPath, entryName });
+  }
+
+  if (files.length === 0) {
+    return res.status(404).json({ error: '未找到可下载的截图文件' });
+  }
+
+  const now = new Date();
+  const ts = now.toISOString().slice(0, 16).replace(/:/g, '-');
+  const zipName = `screenshots-${ts}.zip`;
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
+
+  const archive = archiver('zip', { zlib: { level: 5 } });
+  archive.on('error', (err) => {
+    console.error('[BatchDownload] archive error:', err.message);
+    if (!res.headersSent) res.status(500).json({ error: '压缩失败' });
+  });
+
+  archive.pipe(res);
+  for (const file of files) {
+    archive.file(file.absPath, { name: file.entryName });
+  }
+  archive.finalize();
 });
 
 module.exports = router;

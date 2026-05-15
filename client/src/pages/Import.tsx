@@ -14,23 +14,23 @@ export default function Import() {
       <h1 className="font-display text-2xl mb-8">导入截图</h1>
 
       {/* Tab bar */}
-      <div className="flex border-b border-border mb-8">
+      <div className="mb-8 flex gap-2 rounded-2xl border border-white/[0.10] bg-black/35 p-1 backdrop-blur-xl">
         <button
           onClick={() => setTab('folder')}
-          className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all duration-200 ${
+          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
             tab === 'folder'
-              ? 'border-accent text-white'
-              : 'border-transparent text-white/75 hover:text-white'
+              ? 'border border-cyan-100/85 bg-cyan-400/[0.55] text-white'
+              : 'border border-white/[0.26] bg-white/[0.24] text-white/[0.96] hover:bg-white/[0.34] hover:text-white'
           }`}
         >
           文件夹上传
         </button>
         <button
           onClick={() => setTab('steam')}
-          className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all duration-200 ${
+          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
             tab === 'steam'
-              ? 'border-accent text-white'
-              : 'border-transparent text-white/75 hover:text-white'
+              ? 'border border-cyan-100/85 bg-cyan-400/[0.55] text-white'
+              : 'border border-white/[0.26] bg-white/[0.24] text-white/[0.96] hover:bg-white/[0.34] hover:text-white'
           }`}
         >
           Steam ID 导入
@@ -40,7 +40,7 @@ export default function Import() {
       {message && (
         <div
           key={message}
-          className="mb-5 p-4 rounded-xl bg-accent-soft border border-accent/20 text-sm text-white/85 animate-toast-in"
+          className="mb-5 p-4 rounded-xl bg-cyan-400/[0.16] border border-cyan-300/30 text-sm text-white/85 animate-toast-in"
         >
           {message}
         </div>
@@ -180,9 +180,9 @@ function FolderUpload({ onMessage, onLoading }: { onMessage: (m: string) => void
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-200 bg-black/30 hover:bg-black/45 ${
+        className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all duration-200 bg-black/30 hover:bg-black/45 ${
           dragOver
-            ? 'border-accent bg-accent/10'
+            ? 'border-cyan-100/85 bg-cyan-400/[0.42]'
             : 'border-border hover:border-white/[0.15]'
         }`}
       >
@@ -212,13 +212,13 @@ function FolderUpload({ onMessage, onLoading }: { onMessage: (m: string) => void
           <div className="flex gap-3 mt-1">
             <button
               onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-              className="btn-primary text-sm"
+              className="btn-download text-sm"
             >
               选择图片
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); folderInputRef.current?.click(); }}
-              className="btn-secondary text-sm"
+              className="btn-private text-sm"
             >
               选择文件夹
             </button>
@@ -232,20 +232,22 @@ function FolderUpload({ onMessage, onLoading }: { onMessage: (m: string) => void
         <>
           <div className="flex items-center justify-between">
             <span className="text-sm text-white/85 font-medium">已选择 {files.length} 张</span>
-            <button onClick={clearAll} className="btn-ghost text-xs !text-white/55 hover:!text-red-300">
+            <button onClick={clearAll} className="btn-delete text-xs">
               清空全部
             </button>
           </div>
-          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 max-h-80 overflow-y-auto p-3 rounded-xl bg-black/35 border border-white/[0.10] backdrop-blur-xl">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 max-h-80 overflow-y-auto p-3 rounded-xl bg-black/35 border border-white/[0.10] backdrop-blur-xl">
             {previews.slice(0, 100).map((url, i) => (
-              <div key={i} className="group relative aspect-[16/10] rounded-lg overflow-hidden bg-black/30 border border-white/[0.10] backdrop-blur-xl">
-                <img src={url} alt={files[i]?.name || ''} className="w-full h-full object-cover" />
-                <div className="absolute bottom-0 left-0 right-0 px-1.5 py-1 bg-black/70">
+              <div key={i} className="image-display-card image-hover-card group relative overflow-hidden rounded-lg">
+                <div className="img-hover-zoom aspect-[16/10]">
+                  <img src={url} alt={files[i]?.name || ''} className="w-full h-full object-cover" />
+                </div>
+                <div className="px-2 py-1.5">
                   <p className="text-[9px] text-white/75 truncate">{files[i]?.name}</p>
                 </div>
                 <button
                   onClick={() => removeFile(i)}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-400"
+                  className="btn-icon-round btn-close-red absolute top-1 right-1 h-5 w-5 text-xs opacity-0 group-hover:opacity-100"
                 >
                   &times;
                 </button>
@@ -279,7 +281,7 @@ function FolderUpload({ onMessage, onLoading }: { onMessage: (m: string) => void
                   <button
                     key={g.id}
                     onClick={() => { setSelectedGameId(g.id); setGameName(g.name); setGameSearch(''); setGameResults([]); }}
-                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-white/[0.05] transition-colors duration-150"
+                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-white/[0.16] transition-colors duration-150"
                   >
                     {g.name}
                   </button>
@@ -304,7 +306,7 @@ function FolderUpload({ onMessage, onLoading }: { onMessage: (m: string) => void
         <button
           onClick={handleUpload}
           disabled={uploading}
-          className="btn-primary w-full py-3.5 text-base"
+          className="btn-upload w-full py-3.5 text-base"
         >
           {uploading ? `上传中 (${files.length} 张)...` : `上传 ${files.length} 张截图`}
         </button>
@@ -361,7 +363,7 @@ function SteamApiImport() {
         <label className="block text-sm text-white mb-2 font-semibold">
           Steam 个人资料链接
         </label>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={steamInput}
@@ -370,29 +372,31 @@ function SteamApiImport() {
             className="input-field flex-1"
             disabled={active}
           />
-          {active ? (
-            <button
-              onClick={cancelImport}
-              className="btn-danger text-sm whitespace-nowrap"
-            >
-              终止导入
-            </button>
-          ) : state.phase === 'done' || state.phase === 'error' ? (
-            <button
-              onClick={clear}
-              className="btn-secondary text-sm whitespace-nowrap"
-            >
-              重新导入
-            </button>
-          ) : (
-            <button
-              onClick={doImport}
-              disabled={!steamInput.trim()}
-              className="btn-success text-sm whitespace-nowrap"
-            >
-              开始导入
-            </button>
-          )}
+          <div className="flex gap-2 sm:shrink-0">
+            {active ? (
+              <button
+                onClick={cancelImport}
+                className="btn-delete text-sm whitespace-nowrap w-full sm:w-auto"
+              >
+                终止导入
+              </button>
+            ) : state.phase === 'done' || state.phase === 'error' ? (
+              <button
+                onClick={clear}
+                className="btn-secondary text-sm whitespace-nowrap w-full sm:w-auto"
+              >
+                重新导入
+              </button>
+            ) : (
+              <button
+                onClick={doImport}
+                disabled={!steamInput.trim()}
+                className="btn-upload text-sm whitespace-nowrap w-full sm:w-auto"
+              >
+                开始导入
+              </button>
+            )}
+          </div>
         </div>
         <p className="text-xs text-white/85 mt-2">
           支持 /profiles/、/id/ 链接或 17 位 Steam ID。请确保截图权限为「公开」——导入在后台运行，可自由切换页面
@@ -414,7 +418,7 @@ function SteamApiImport() {
           </div>
           <button
             onClick={retryFailed}
-            className="btn-warning text-sm whitespace-nowrap"
+            className="btn-download text-sm whitespace-nowrap"
           >
             继续处理 {staleTotal} 张
           </button>
@@ -438,33 +442,31 @@ function SteamApiImport() {
             <div className="relative ml-auto">
               <button
                 onClick={() => setShowHelp(!showHelp)}
-                className="w-5 h-5 rounded-full bg-white/15 hover:bg-white/25 text-white/60 hover:text-white/90
-                           flex items-center justify-center text-[11px] font-semibold
-                           transition-all duration-200 cursor-pointer"
+                className="btn-icon-round h-5 w-5 text-[11px] font-semibold"
                 title="了解导入流程"
               >
                 ?
               </button>
               {showHelp && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowHelp(false)} />
-                  <div className="absolute right-0 top-7 z-20 w-72 p-4 rounded-xl
-                                  bg-black/90 border border-white/[0.15] backdrop-blur-xl
+                  <div className="fixed inset-0 z-[8990] bg-black/30 backdrop-blur-sm" onClick={() => setShowHelp(false)} />
+                  <div className="fixed right-4 left-4 sm:absolute sm:right-0 sm:left-auto sm:top-7 top-20 z-[9000] sm:w-72 p-4 rounded-xl
+                                  bg-black/90 border border-white/[0.18] backdrop-blur-xl
                                   shadow-xl shadow-black/50 text-xs text-white/85 leading-relaxed
                                   animate-fade-up">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-semibold text-white text-sm">导入流程说明</span>
                       <button
                         onClick={() => setShowHelp(false)}
-                        className="text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+                        className="btn-icon btn-close-red h-7 w-7 rounded-lg"
                       >
                         ✕
                       </button>
                     </div>
                     <ol className="space-y-1.5 list-decimal list-inside">
-                      <li><span className="text-accent font-medium">发现</span> — 翻页抓取 Steam 截图列表，获取所有文件 ID</li>
-                      <li><span className="text-accent font-medium">解析</span> — 逐个请求每个截图的详情页，提取原始图片地址</li>
-                      <li><span className="text-accent font-medium">下载</span> — 将图片下载到本地服务器并生成缩略图</li>
+                      <li><span className="text-cyan-100 font-medium">发现</span> — 翻页抓取 Steam 截图列表，获取所有文件 ID</li>
+                      <li><span className="text-cyan-100 font-medium">解析</span> — 逐个请求每个截图的详情页，提取原始图片地址</li>
+                      <li><span className="text-cyan-100 font-medium">下载</span> — 将图片下载到本地服务器并生成缩略图</li>
                     </ol>
                     <div className="mt-2.5 pt-2.5 border-t border-white/[0.10] text-white/70 space-y-1">
                       <p>为防止 Steam 限速（429），每解析 40 张后会暂停 <span className="text-amber-400">3 分钟</span>。</p>
@@ -528,9 +530,15 @@ function SteamApiImport() {
           )}
 
           {state.phase === 'error' && (
-            <div className="text-sm text-red-400">
-              {state.error_msg || '导入失败'}
-              <button onClick={clear} className="ml-2 underline hover:text-red-300">关闭</button>
+            <div className="space-y-4">
+              <div className="rounded-xl border border-red-300/30 bg-red-500/[0.10] px-4 py-3 text-sm text-red-200">
+                {state.error_msg || '导入失败'}
+              </div>
+              <div className="flex justify-end">
+                <button onClick={clear} className="btn-delete min-h-9 px-4 py-1.5 text-xs">
+                  关闭
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -543,7 +551,7 @@ function SteamApiImport() {
 function PhaseBadge({ label, done, active }: { label: string; done: boolean; active: boolean }) {
   let cls = 'px-2 py-0.5 rounded-full text-xs font-medium ';
   if (done) cls += 'bg-emerald-500/30 text-emerald-300';
-  else if (active) cls += 'bg-accent/50 text-accent border border-accent/60 shadow-[0_0_12px] shadow-accent/40 animate-pulse';
+  else if (active) cls += 'bg-cyan-400/[0.55] text-white border border-cyan-100/85 shadow-[0_0_12px] shadow-cyan-400/30 animate-pulse';
   else cls += 'bg-black/25 border border-white/[0.10] backdrop-blur-xl text-white/75';
   return <span className={cls}>{label}</span>;
 }

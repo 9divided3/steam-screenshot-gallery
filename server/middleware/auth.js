@@ -50,6 +50,10 @@ function optionalAuth(req, res, next) {
     try {
       req.user = jwt.verify(header.slice(BEARER_PREFIX.length), JWT_SECRET);
     } catch { /* ignore invalid token */ }
+  } else if (req.query.token && typeof req.query.token === 'string') {
+    try {
+      req.user = jwt.verify(req.query.token, JWT_SECRET);
+    } catch { /* ignore invalid token */ }
   }
   next();
 }

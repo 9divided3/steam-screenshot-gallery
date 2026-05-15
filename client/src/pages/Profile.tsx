@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { profile as profileApi, follows as followsApi } from '../api/client';
 import { useLightbox } from '../hooks/useLightbox';
 import FollowButton from '../components/FollowButton/FollowButton';
 import Lightbox from '../components/Lightbox/Lightbox';
+import { screenshotUrl, thumbnailUrl } from '../utils/media';
 
 interface ProfileData {
   id: number;
@@ -79,8 +81,8 @@ export default function Profile() {
     }
   };
 
-  const fetchProfile = useCallback(async () => {
-    setLoading(true);
+  const fetchProfile = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const data = isOwnProfile
         ? await profileApi.get()
@@ -92,7 +94,7 @@ export default function Profile() {
     } catch (err: any) {
       setError(err.message || '加载失败');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [isOwnProfile, targetUserId]);
 
@@ -100,8 +102,18 @@ export default function Profile() {
     fetchProfile();
   }, [fetchProfile]);
 
+  useEffect(() => {
+    if (!listModal) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setListModal(null);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [listModal]);
+
   // Showcase
   const [showcased, setShowcased] = useState<Array<{ id: number; file_path: string; thumbnail_path: string | null; title: string; width: number | null; height: number | null; game_name?: string }>>([]);
+  const [removingShowcaseIds, setRemovingShowcaseIds] = useState<Set<number>>(new Set());
   const showcaseLightboxImages = showcased.map((s) => ({
     id: s.id,
     file_path: s.file_path,
@@ -170,7 +182,7 @@ export default function Profile() {
       const data = await profileApi.update(fd);
 
       // Re-fetch to get full profile with stats
-      await fetchProfile();
+      await fetchProfile(false);
       setEditing(false);
       showToast('保存成功');
     } catch (err: any) {
@@ -194,6 +206,26 @@ export default function Profile() {
     avatarFileRef.current = null;
   };
 
+  const handleRemoveShowcase = (screenshotId: number) => {
+    setRemovingShowcaseIds((prev) => new Set(prev).add(screenshotId));
+    const ids = showcased.map((x) => x.id).filter((id) => id !== screenshotId);
+
+    window.setTimeout(async () => {
+      try {
+        await profileApi.updateShowcase(ids);
+        setShowcased((prev) => prev.filter((x) => x.id !== screenshotId));
+        showToast('已从展示中移除');
+      } catch (err: any) {
+        setRemovingShowcaseIds((prev) => {
+          const next = new Set(prev);
+          next.delete(screenshotId);
+          return next;
+        });
+        showToast(err?.message || '移除失败');
+      }
+    }, 520);
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-6 py-20">
@@ -215,7 +247,7 @@ export default function Profile() {
     return (
       <div className="max-w-4xl mx-auto px-6 py-20 text-center">
         <p className="text-white/80 text-lg">{error}</p>
-        <button onClick={fetchProfile} className="btn-primary mt-6">重试</button>
+        <button onClick={() => fetchProfile()} className="btn-primary mt-6">重试</button>
       </div>
     );
   }
@@ -225,7 +257,7 @@ export default function Profile() {
 
   return (
     <>
-    <div className="max-w-4xl mx-auto px-6 py-12 animate-fade-up">
+    <div className="profile-page-shell max-w-6xl mx-auto px-4 sm:px-6 py-7 sm:py-10">
       {/* Toast */}
       {toast && (
         <div className="fixed top-20 right-6 z-[100] animate-toast-in">
@@ -235,19 +267,25 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Hero Section — Avatar + Identity */}
-      <div className="p-6 sm:p-8 mb-8 rounded-2xl glass-hover">
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10">
+      {/* Hero Section: Avatar + Identity */}
+      <div className="profile-hero-panel mb-6 sm:mb-8">
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-5 md:gap-10">
           {/* Avatar */}
-          <div className="relative shrink-0">
+          <div className="relative isolate shrink-0">
             <div
-              className={`relative w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden transition-all duration-500 border-2 ${
-                dragOver ? 'border-accent scale-105 shadow-xl shadow-accent/30' : 'border-white/25 hover:border-accent/60'
+              className={`profile-avatar-frame relative z-10 w-32 h-32 sm:w-40 sm:h-40 transition-all duration-500 border-2 ${
+                dragOver ? 'border-cyan-300 scale-105 shadow-xl shadow-cyan-300/30' : 'border-white/25 hover:border-cyan-300/60'
               }`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               onClick={() => editing && fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (editing && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
               role={editing ? 'button' : undefined}
               tabIndex={editing ? 0 : undefined}
               title={editing ? '点击或拖放上传头像' : undefined}
@@ -270,7 +308,7 @@ export default function Profile() {
               {editing && (
                 <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 rounded-full ${
                   dragOver
-                    ? 'bg-accent/40 backdrop-blur-sm'
+                    ? 'bg-cyan-400/[0.28] backdrop-blur-sm'
                     : 'bg-black/20 hover:bg-black/40 hover:backdrop-blur-sm'
                 }`}>
                   <svg
@@ -296,87 +334,90 @@ export default function Profile() {
                 }}
               />
             </div>
-            {/* Golden glow behind avatar */}
-            <div className="absolute -inset-4 rounded-full bg-accent/15 blur-2xl pointer-events-none animate-breathe" />
           </div>
 
-          {/* Identity */}
-          <div className="flex-1 text-center md:text-left pt-1">
-            {editing ? (
-              <input
-                className="input-field text-2xl font-display mb-2 max-w-xs"
-                placeholder="显示名称"
-                value={form.display_name}
-                onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
-                maxLength={50}
-                autoFocus
-              />
-            ) : (
-              <h1 className="text-3xl md:text-4xl font-display text-white tracking-tight">
-                {displayName}
-              </h1>
-            )}
-            <p className="text-white/80 text-sm mt-1 font-mono">
-              @{profile?.username}
-            </p>
-            <div className="flex items-center gap-4 mt-3 text-sm">
-              <button
-                onClick={() => openList('following')}
-                className="hover:text-accent transition-colors duration-200"
-              >
-                <span className="font-semibold text-white text-lg tabular-nums">{profile?.following_count ?? 0}</span>
-                <span className="text-white/80 ml-1">关注</span>
-              </button>
-              <button
-                onClick={() => openList('followers')}
-                className="hover:text-accent transition-colors duration-200"
-              >
-                <span className="font-semibold text-white text-lg tabular-nums">{profile?.followers_count ?? 0}</span>
-                <span className="text-white/80 ml-1">粉丝</span>
-              </button>
-            </div>
-            <div className="flex items-center gap-2 mt-2.5">
-              <span className="text-xs px-2.5 py-1 rounded-full bg-white/[0.12] border border-white/[0.15] text-white/75 backdrop-blur-sm">
-                加入于 {profile?.created_at ? formatDate(profile.created_at) : '—'}
-              </span>
-            </div>
-          </div>
+          {/* Identity + Actions grouped */}
+          <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left pt-1 w-full min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between w-full gap-4">
+              <div className="flex-1 min-w-0">
+                {editing ? (
+                  <input
+                    className="input-field text-2xl font-display mb-2 max-w-xs mx-auto md:mx-0"
+                    placeholder="显示名称"
+                    value={form.display_name}
+                    onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
+                    maxLength={50}
+                    autoFocus
+                  />
+                ) : (
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-display text-white tracking-tight leading-tight">
+                    {displayName}
+                  </h1>
+                )}
+                <p className="text-white/80 text-sm mt-1 font-mono">
+                  @{profile?.username}
+                </p>
+                <div className="flex items-center justify-center md:justify-start gap-3 mt-4 text-sm">
+                  <button
+                    onClick={() => openList('followers')}
+                    className="profile-social-summary-button"
+                  >
+                    <span className="profile-social-summary-item">
+                      <span className="font-semibold text-white text-lg tabular-nums">{profile?.followers_count ?? 0}</span>
+                      <span className="text-white/80">粉丝</span>
+                    </span>
+                    <span className="profile-social-summary-divider" />
+                    <span className="profile-social-summary-item">
+                      <span className="font-semibold text-white text-lg tabular-nums">{profile?.following_count ?? 0}</span>
+                      <span className="text-white/80">关注</span>
+                    </span>
+                  </button>
+                </div>
+                <div className="flex items-center justify-center md:justify-start gap-2 mt-2.5">
+                  <span className="text-xs px-2.5 py-1 rounded-full bg-white/[0.10] border border-white/[0.14] text-white/[0.78] backdrop-blur-sm">
+                    加入于 {profile?.created_at ? formatDate(profile.created_at) : '-'}
+                  </span>
+                </div>
+              </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-            {isOwnProfile ? (
-              editing ? (
-                <>
-                  <button onClick={handleSave} disabled={saving} className="btn-primary text-sm !px-6">
-                    {saving ? '保存中...' : '保存'}
-                  </button>
-                  <button onClick={handleCancel} className="btn-ghost text-sm">
-                    取消
-                  </button>
-                </>
-              ) : (
-                <button onClick={handleEdit} className="btn-secondary text-sm !px-5">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                  </svg>
-                  编辑资料
-                </button>
-              )
-            ) : (
-              profile && (
-                <FollowButton
-                  userId={profile.id}
-                  initialIsFollowing={profile.is_following}
-                />
-              )
-            )}
+              {/* Action buttons */}
+              <div className="flex items-center justify-center md:justify-end gap-2 shrink-0">
+                {isOwnProfile ? (
+                  editing ? (
+                    <>
+                      <button onClick={handleSave} disabled={saving} className="btn-profile text-sm !px-6">
+                        {saving ? '保存中...' : '保存'}
+                      </button>
+                      <button onClick={handleCancel} className="btn-profile-quiet text-sm">
+                        取消
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={handleEdit} className="btn-profile text-sm !px-5">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                      </svg>
+                      编辑资料
+                    </button>
+                  )
+                ) : (
+                  profile && (
+                    <FollowButton
+                      userId={profile.id}
+                      initialIsFollowing={profile.is_following}
+                      className="btn-profile"
+                    />
+                  )
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Bio Section */}
-      <div className="mb-8 animate-fade-up animate-stagger-1">
-        <div className="p-5 rounded-2xl glass-hover">
+      <div className="mb-6 sm:mb-8">
+        <div className="profile-section-panel">
           <h3 className="text-xs font-medium text-white/65 uppercase tracking-wider mb-3">个人简介</h3>
           {isOwnProfile && editing ? (
             <div className="relative">
@@ -393,14 +434,14 @@ export default function Profile() {
             </div>
           ) : (
             <p className={`text-white/80 leading-relaxed text-sm ${!profile?.bio && 'italic text-white/65'}`}>
-              {profile?.bio || '暂无个人简介。点击"编辑资料"来介绍一下自己吧。'}
+              {profile?.bio || '暂无个人简介。点击“编辑资料”来介绍一下自己吧。'}
             </p>
           )}
         </div>
       </div>
 
       {/* Showcased Screenshots */}
-      <div className="mb-8 animate-fade-up animate-stagger-2">
+      <div className="mb-7 sm:mb-9">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-display text-lg text-white">精选展示</h2>
@@ -408,34 +449,33 @@ export default function Profile() {
           </div>
         </div>
         {showcased.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {showcased.map((s, i) => (
               <div
                 key={s.id}
-                className="relative rounded-xl overflow-hidden glass group cursor-pointer hover-lift"
+                className={`profile-showcase-card group cursor-pointer hover-lift ${
+                  removingShowcaseIds.has(s.id) ? 'profile-showcase-removing pointer-events-none' : ''
+                }`}
                 onClick={() => showcaseLightbox.open(i)}
               >
                 <div className="aspect-[16/10] img-hover-zoom">
                   <img
-                    src={s.thumbnail_path ? `/thumbnails/${s.thumbnail_path}` : `/uploads/${s.file_path}`}
+                    src={s.thumbnail_path ? thumbnailUrl(s.id) : screenshotUrl(s.id)}
                     alt={s.title || ''}
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
                 </div>
-                {s.game_name && (
-                  <p className="px-3 py-2 text-xs text-white/80 truncate font-medium">{s.game_name}</p>
+                {(s.game_name || s.title) && (
+                  <p className="px-3 py-2 text-xs text-white/80 truncate font-medium">{s.game_name || s.title}</p>
                 )}
                 {isOwnProfile && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      const ids = showcased.map((x) => x.id).filter((id) => id !== s.id);
-                      profileApi.updateShowcase(ids);
-                      setShowcased(showcased.filter((x) => x.id !== s.id));
-                      showToast('已从展示中移除');
+                      handleRemoveShowcase(s.id);
                     }}
-                    className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-black/50 text-white/80 hover:bg-red-500/70 hover:text-white opacity-0 group-hover:opacity-100 transition-all duration-200 text-sm"
+                    className="btn-icon-round btn-close-red absolute top-2 right-2 z-10 h-7 w-7 text-sm opacity-0 group-hover:opacity-100"
                     title="从展示中移除"
                   >
                     &times;
@@ -445,13 +485,13 @@ export default function Profile() {
             ))}
           </div>
         ) : (
-          <div className="glass border-dashed border-white/[0.15] p-10 text-center">
+          <div className="profile-empty-panel">
             <svg className="w-10 h-10 text-white/20 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
             </svg>
             <p className="text-white/80 text-sm">
               {isOwnProfile
-                ? '还没有精选展示。在图库中点开图片，点击「展示」按钮即可添加到主页。'
+                ? '还没有精选展示。在图库中点开图片，点击“展示”按钮即可添加到主页。'
                 : '该用户还没有精选展示。'}
             </p>
             {isOwnProfile && (
@@ -462,8 +502,8 @@ export default function Profile() {
       </div>
 
       {/* Stats Grid */}
-      <h2 className="font-display text-lg text-white mb-4 animate-fade-up animate-stagger-2">数据统计</h2>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up animate-stagger-2">
+      <h2 className="font-display text-lg text-white mb-4">数据统计</h2>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           label="截图总数"
           value={profile?.stats.screenshots ?? 0}
@@ -504,90 +544,124 @@ export default function Profile() {
       </div>
     </div>
 
-    {/* Followers / Following list modal — outside animated container so fixed covers full viewport */}
-    {listModal && (
+    {/* Followers / Following list modal: outside animated container so fixed covers full viewport */}
+    {listModal && createPortal(
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md"
+        className="profile-modal-backdrop"
         style={{ animation: 'fadeIn 0.2s ease-out forwards' }}
         onClick={() => setListModal(null)}
       >
         <div
-          className="glass w-full max-w-sm mx-4 max-h-[70vh] flex flex-col shadow-2xl shadow-black/40"
+          className="profile-modal-panel"
           style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.10]">
-            <h2 className="font-display text-lg text-white">
-              {listModal === 'followers' ? '粉丝' : '关注'}
-            </h2>
-            <button
-              onClick={() => setListModal(null)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-white/55 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
-              aria-label="关闭"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+          <div className="profile-modal-header">
+            <div className="flex items-start justify-between gap-4 px-5 pt-5">
+              <div className="min-w-0">
+                <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-cyan-100/75">Social</p>
+                <h2 className="mt-1 font-display text-2xl text-white">
+                  {listModal === 'followers' ? '粉丝' : '关注'}
+                </h2>
+                <p className="mt-1 truncate text-xs text-white/60">{displayName}</p>
+              </div>
+              <button
+                onClick={() => setListModal(null)}
+                className="btn-icon btn-close-red h-8 w-8 rounded-lg shrink-0"
+                aria-label="关闭"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="profile-social-tabs mx-5 mt-4 mb-4">
+              <button
+                type="button"
+                onClick={() => listModal !== 'followers' && openList('followers')}
+                className={`profile-social-tab ${listModal === 'followers' ? 'profile-social-tab-active' : ''}`}
+              >
+                <span className="tabular-nums">{profile?.followers_count ?? 0}</span>
+                <span>粉丝</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => listModal !== 'following' && openList('following')}
+                className={`profile-social-tab ${listModal === 'following' ? 'profile-social-tab-active' : ''}`}
+              >
+                <span className="tabular-nums">{profile?.following_count ?? 0}</span>
+                <span>关注</span>
+              </button>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto px-3 py-2">
+          <div className="profile-modal-list flex-1 overflow-y-auto px-3 py-3">
+            <div className="mb-3 flex items-center justify-between px-2 text-xs text-white/60">
+              <span>{listModal === 'followers' ? '关注你的人' : '你关注的人'}</span>
+              <span>{listUsers.length} 位</span>
+            </div>
             {listLoading ? (
-              <div className="space-y-3 p-2">
+              <div className="space-y-2 p-1">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="skeleton w-10 h-10 rounded-full shrink-0" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="skeleton h-4 w-24" />
-                      <div className="skeleton h-3 w-16" />
+                  <div key={i} className="profile-modal-user-row">
+                    <div className="skeleton w-12 h-12 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="skeleton h-4 w-32" />
+                      <div className="skeleton h-3 w-20" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : listUsers.length === 0 ? (
-              <p className="text-center text-white/65 text-sm py-12">
-                {listModal === 'followers' ? '还没有粉丝' : '还没有关注任何人'}
-              </p>
+              <div className="profile-social-empty">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.06]">
+                  <svg className="h-6 w-6 text-white/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.1 9.1 0 0 0 3.75.78 6.75 6.75 0 0 0-13.5 0 9.1 9.1 0 0 0 3.75-.78m6 0a9.08 9.08 0 0 1-6 0m6 0a6.75 6.75 0 1 0-6 0M15 8.25a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-white/75">
+                  {listModal === 'followers' ? '还没有粉丝' : '还没有关注任何人'}
+                </p>
+              </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {listUsers.map((u) => (
                   <Link
                     key={u.id}
                     to={`/profile/${u.id}`}
                     onClick={() => setListModal(null)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.08] transition-all duration-200 group"
+                    className="profile-modal-user-row group"
                   >
                     {u.avatar_url ? (
                       <img
                         src={u.avatar_url}
                         alt=""
-                        className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-white/[0.10]"
+                        className="w-12 h-12 rounded-full object-cover shrink-0 ring-1 ring-white/[0.16]"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0 ring-1 ring-white/[0.10]">
-                        <span className="text-sm text-white/65 font-display">
+                      <div className="w-12 h-12 rounded-full bg-white/[0.08] flex items-center justify-center shrink-0 ring-1 ring-white/[0.16]">
+                        <span className="text-base text-white/70 font-display">
                           {(u.display_name?.[0] || u.username[0]).toUpperCase()}
                         </span>
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-semibold truncate group-hover:text-accent transition-colors">
+                      <p className="text-sm text-white font-semibold truncate group-hover:text-cyan-100 transition-colors">
                         {u.display_name || u.username}
                       </p>
-                      <p className="text-xs text-white/65 truncate">@{u.username}</p>
+                      <p className="text-xs text-white/55 truncate">@{u.username}</p>
                     </div>
-                    <svg className="w-4 h-4 text-white/40 shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                    </svg>
+                    <span className="profile-social-open">主页</span>
                   </Link>
                 ))}
               </div>
             )}
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
 
-    {/* Showcase Lightbox — outside animated container so fixed positioning works */}
+    {/* Showcase Lightbox: outside animated container so fixed positioning works */}
     {showcaseLightbox.isOpen && (
       <Lightbox
         images={showcaseLightboxImages}
@@ -611,10 +685,10 @@ function StatCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="p-5 rounded-2xl glass-hover cursor-pointer hover:shadow-lg hover:shadow-black/20 transition-all duration-300">
+    <div className="profile-stat-card">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-medium text-white/75 uppercase tracking-wider">{label}</span>
-        <span className="text-accent group-hover:text-accent-hover transition-colors duration-300">{icon}</span>
+        <span className="text-cyan-100 group-hover:text-white transition-colors duration-300">{icon}</span>
       </div>
       <p className="text-2xl font-display text-white tracking-tight tabular-nums">
         {value}

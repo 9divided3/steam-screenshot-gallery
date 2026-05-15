@@ -9,6 +9,7 @@ import { useLikedScreenshots } from '../hooks/useLikedScreenshots';
 import ImageCard from '../components/ImageCard/ImageCard';
 import LikeButton from '../components/LikeButton/LikeButton';
 import Lightbox from '../components/Lightbox/Lightbox';
+import { screenshotUrl, thumbnailUrl } from '../utils/media';
 import type { Screenshot, Stats } from '../types';
 
 interface MyStats {
@@ -45,6 +46,7 @@ export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [logoHovered, setLogoHovered] = useState(false);
+  const [heroSinkProgress, setHeroSinkProgress] = useState(0);
 
   useEffect(() => {
     pub.screenshots({ limit: '10' }).then((data) => {
@@ -113,10 +115,40 @@ export default function Home() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  useEffect(() => {
+    let ticking = false;
+    const update = () => {
+      const progress = Math.min(1, Math.max(0, window.scrollY / 260));
+      setHeroSinkProgress((prev) => {
+        const next = Math.round(progress * 1000) / 1000;
+        return Math.abs(prev - next) > 0.01 ? next : prev;
+      });
+      ticking = false;
+    };
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const heroCopyStyle = {
+    transform: `translateY(${heroSinkProgress * 34}px) scale(${1 - heroSinkProgress * 0.035})`,
+    opacity: 1 - heroSinkProgress * 0.52,
+    filter: `blur(${heroSinkProgress * 1.6}px)`,
+  };
+
+  const showcaseSinkStyle = {
+    transform: `translateY(${-heroSinkProgress * 96}px) scale(${1 + heroSinkProgress * 0.035})`,
+  };
+
   return (
     <div>
       {/* Hero */}
-      <section ref={heroRef} className="relative overflow-hidden pt-12 pb-8 md:pt-20 md:pb-14">
+      <section ref={heroRef} className="home-sink-hero relative overflow-hidden pt-12 pb-8 md:pt-20 md:pb-14">
         {/* Ambient orbs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
@@ -145,7 +177,10 @@ export default function Home() {
           />
         </div>
 
-        <div className="max-w-4xl mx-auto px-6 text-center relative">
+        <div
+          className="home-sink-copy max-w-4xl mx-auto px-6 text-center relative"
+          style={heroCopyStyle}
+        >
           {/* Logo with modern accent bar */}
           <div
             className="inline-block mb-5"
@@ -201,19 +236,23 @@ export default function Home() {
       {/* Carousel with Ken Burns */}
       {carouselItems.length > 0 && (
         <section
-          className="max-w-7xl mx-auto px-6 pb-10"
-          style={{ animation: 'fadeUp 0.7s ease-out 0.3s forwards', opacity: 0 }}
+          className="home-sink-showcase max-w-7xl mx-auto px-6 pb-10"
+          style={{
+            animation: 'fadeUp 0.7s ease-out 0.3s forwards',
+            opacity: 0,
+            ...showcaseSinkStyle,
+          }}
         >
           <div className="relative aspect-video rounded-2xl overflow-hidden glass shadow-2xl shadow-black/30 animate-glow-pulse">
             {carouselItems.map((item, i) => (
               <div
                 key={item.id}
-                className={`absolute inset-0 transition-all duration-700 ease-out ${
+                className={`image-hover-card absolute inset-0 transition-all duration-700 ease-out ${
                   i === carouselIndex ? 'opacity-100' : 'opacity-0'
                 }`}
               >
                 <img
-                  src={`/uploads/${item.file_path}`}
+                  src={screenshotUrl(item.id)}
                   alt={item.title}
                   className={`w-full h-full object-cover transition-all duration-[7s] ease-out ${
                     i === carouselIndex ? 'animate-ken-burns' : ''
@@ -230,13 +269,7 @@ export default function Home() {
               <>
                 <button
                   onClick={() => setCarouselIndex((i) => wrapIndex(i, -1, carouselItems.length))}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full
-                             bg-black/40 border border-white/[0.15] backdrop-blur-xl
-                             text-white/70 hover:text-accent
-                             hover:bg-black/55 hover:border-accent/30
-                             shadow-lg shadow-black/10 hover:shadow-accent/10
-                             flex items-center justify-center
-                             transition-all duration-300 ease-out cursor-pointer"
+                  className="btn-icon-round absolute left-4 top-1/2 z-10 h-11 w-11 -translate-y-1/2 hover:!border-cyan-200/70 hover:!text-cyan-100"
                   aria-label="上一张"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -245,13 +278,7 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => setCarouselIndex((i) => wrapIndex(i, 1, carouselItems.length))}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full
-                             bg-black/40 border border-white/[0.15] backdrop-blur-xl
-                             text-white/70 hover:text-accent
-                             hover:bg-black/55 hover:border-accent/30
-                             shadow-lg shadow-black/10 hover:shadow-accent/10
-                             flex items-center justify-center
-                             transition-all duration-300 ease-out cursor-pointer"
+                  className="btn-icon-round absolute right-4 top-1/2 z-10 h-11 w-11 -translate-y-1/2 hover:!border-cyan-200/70 hover:!text-cyan-100"
                   aria-label="下一张"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -267,9 +294,9 @@ export default function Home() {
                 <button
                   key={i}
                   onClick={() => setCarouselIndex(i)}
-                  className={`rounded-full transition-all duration-300 ${
+                  className={`rounded-full transition-all duration-300 cursor-pointer ${
                     i === carouselIndex
-                      ? 'bg-accent w-6 h-2'
+                      ? 'bg-cyan-300/80 w-6 h-2 shadow-lg shadow-cyan-300/20'
                       : 'bg-white/30 hover:bg-white/50 w-2 h-2'
                   }`}
                 />
@@ -315,8 +342,8 @@ export default function Home() {
             {recent.map((screenshot, i) => (
               <div key={screenshot.id} style={{ animation: `fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.07}s forwards`, opacity: 0 }}>
                 <ImageCard
-                  src={`/uploads/${screenshot.file_path}`}
-                  thumbnailSrc={screenshot.thumbnail_path ? `/thumbnails/${screenshot.thumbnail_path}` : undefined}
+                  src={screenshotUrl(screenshot.id)}
+                  thumbnailSrc={screenshot.thumbnail_path ? thumbnailUrl(screenshot.id) : undefined}
                   alt={screenshot.title}
                   title={screenshot.game_name || '未知游戏'}
                   subtitle={`by ${screenshot.display_name || screenshot.username}`}

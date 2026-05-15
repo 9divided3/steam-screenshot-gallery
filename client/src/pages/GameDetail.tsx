@@ -4,6 +4,7 @@ import { games as gamesApi, screenshots as scrApi } from '../api/client';
 import { useLightbox } from '../hooks/useLightbox';
 import Lightbox from '../components/Lightbox/Lightbox';
 import ImageCard from '../components/ImageCard/ImageCard';
+import { screenshotUrl, thumbnailUrl } from '../utils/media';
 import type { Screenshot, Game } from '../types';
 
 export default function GameDetail() {
@@ -61,9 +62,10 @@ export default function GameDetail() {
           {screenshots.map((s, i) => (
             <ImageCard
               key={s.id}
-              src={`/uploads/${s.file_path}`}
-              thumbnailSrc={s.thumbnail_path ? `/thumbnails/${s.thumbnail_path}` : undefined}
+              src={screenshotUrl(s.id)}
+              thumbnailSrc={s.thumbnail_path ? thumbnailUrl(s.id) : undefined}
               alt={s.title}
+              title={s.game_name || game.name}
               onClick={() => lightbox.open(i)}
               index={i}
               showOverlay={false}

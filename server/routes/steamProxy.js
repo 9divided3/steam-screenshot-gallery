@@ -12,7 +12,7 @@ const ALLOWED_DOMAINS = [
 ];
 
 function isAllowedHost(hostname) {
-  return ALLOWED_DOMAINS.some((d) => hostname.endsWith(d));
+  return ALLOWED_DOMAINS.some((d) => hostname === d || hostname.endsWith('.' + d));
 }
 
 function getContentType(url) {
@@ -48,6 +48,11 @@ router.get('/steam-fetch-html', authMiddleware, async (req, res, next) => {
   try {
     const targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).json({ error: 'url required' });
+
+    const host = new URL(targetUrl).hostname;
+    if (!isAllowedHost(host)) {
+      return res.status(403).json({ error: 'domain not allowed' });
+    }
 
     const result = await proxyFetch(targetUrl);
     const text = await result.text();

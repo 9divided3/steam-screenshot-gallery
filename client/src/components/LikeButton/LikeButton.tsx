@@ -48,10 +48,10 @@ export default function LikeButton({ screenshotId, initialLiked = false, initial
     <button
       onClick={handleClick}
       disabled={pending}
-      className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium transition-all duration-200 ${
+      className={`btn-chip ${
         liked
-          ? 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30'
-          : 'bg-black/30 text-white/75 border border-white/[0.08] backdrop-blur-md hover:bg-black/50 hover:text-white/80'
+          ? '!border-rose-200/70 !bg-rose-400/[0.38] !text-rose-50 hover:!bg-rose-400/[0.48]'
+          : '!border-slate-200/55 !bg-slate-500/[0.34] !text-white hover:!border-rose-200/60 hover:!bg-rose-400/[0.30]'
       }`}
     >
       <span className={`transition-transform duration-200 ${liked ? 'scale-110' : ''}`}>

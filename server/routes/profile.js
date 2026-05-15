@@ -5,6 +5,7 @@ const fs = require('fs');
 const { get, all, run } = require('../db/database');
 const { authMiddleware, optionalAuth } = require('../middleware/auth');
 const { buildPlaceholders } = require('../utils/queryHelpers');
+const { validate: validateImage } = require('../services/thumbnail');
 
 const router = express.Router();
 
@@ -90,12 +91,13 @@ router.get('/', authMiddleware, (req, res) => {
 router.get('/showcase/:userId?', optionalAuth, (req, res) => {
   const userId = req.params.userId ? parseInt(req.params.userId) : (req.user?.id);
   if (!userId) return res.status(401).json({ error: '请登录' });
+  const isOwnProfile = req.user?.id === userId;
 
   const rows = all(
     `SELECT s.id, s.file_path, s.thumbnail_path, s.title, s.width, s.height, g.name as game_name
      FROM screenshots s
      LEFT JOIN games g ON s.game_id = g.id
-     WHERE s.user_id = ? AND s.showcased = 1
+     WHERE s.user_id = ? AND s.showcased = 1${isOwnProfile ? '' : ' AND s.is_public = 1'}
      ORDER BY s.id DESC
      LIMIT 6`,
     [userId]
@@ -169,7 +171,7 @@ router.get('/:userId', optionalAuth, (req, res) => {
 });
 
 // PUT /api/profile — update profile fields + optional avatar
-router.put('/', authMiddleware, upload.single('avatar'), (req, res) => {
+router.put('/', authMiddleware, upload.single('avatar'), async (req, res) => {
   const { display_name, bio } = req.body;
   const userId = req.user.id;
 
@@ -189,6 +191,17 @@ router.put('/', authMiddleware, upload.single('avatar'), (req, res) => {
 
   // Handle avatar upload
   if (req.file) {
+    try {
+      const isValid = await validateImage(req.file.path);
+      if (!isValid) {
+        try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
+        return res.status(400).json({ error: '头像文件不是有效的图片格式' });
+      }
+    } catch {
+      try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
+      return res.status(400).json({ error: '头像文件验证失败' });
+    }
+
     const avatarUrl = `/uploads/avatars/${req.file.filename}`;
 
     // Delete old avatar file if it exists

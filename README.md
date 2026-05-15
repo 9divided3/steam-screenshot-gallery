@@ -102,13 +102,29 @@ npm run dev
 cp .env.example .env
 ```
 
-编辑 `.env` 文件，**必须修改 `JWT_SECRET`** 为随机字符串。生成方式：
+**必须编辑 `.env` 文件，修改 `JWT_SECRET`** — 使用以下命令生成 64 字节随机密钥：
 
 ```bash
+# Linux / macOS / WSL
 openssl rand -hex 64
+
+# Windows PowerShell
+[Convert]::ToHexString((New-Object Security.Cryptography.AESCryptoServiceProvider).Key)
 ```
 
-### 2. 启动服务
+> **注意**：如果未设置 `JWT_SECRET`，`docker compose up` 会直接报错退出：
+> `JWT_SECRET must be set`。这是安全机制的一部分，确保生产环境不使用弱密钥。
+
+### 2. 创建持久化目录
+
+应用在容器内以 `appuser` 运行，UID/GID 为 `1001:1001`。在 Linux 服务器上使用 bind mount 时，先创建宿主机目录并授权，否则上传截图、生成缩略图或保存 SQLite 数据库可能失败：
+
+```bash
+mkdir -p data uploads thumbnails
+sudo chown -R 1001:1001 data uploads thumbnails
+```
+
+### 3. 启动服务
 
 ```bash
 docker compose up -d
@@ -116,7 +132,7 @@ docker compose up -d
 
 服务将在 `http://localhost:3000` 运行。
 
-### 3. 数据持久化
+### 4. 数据持久化
 
 以下目录通过 Docker Volume 挂载到宿主机，数据不会因容器重启而丢失：
 
@@ -126,7 +142,9 @@ docker compose up -d
 | `./uploads` | 用户上传的截图文件 |
 | `./thumbnails` | 系统生成的缩略图 |
 
-### 4. 反向代理（推荐）
+这些宿主机目录分别映射到容器内的 `/app/server/data`、`/app/server/uploads`、`/app/server/thumbnails`，与服务端运行时写入路径保持一致。
+
+### 5. 反向代理（推荐）
 
 生产环境建议在容器前放置 Nginx 或 Caddy 作为反向代理，处理 HTTPS 和静态资源缓存。示例 Nginx 配置：
 
@@ -150,7 +168,7 @@ server {
 }
 ```
 
-### 5. 阿里云部署要点
+### 6. 阿里云部署要点
 
 - **ECS 单机**：安装 Docker 后按上述步骤操作，安全组开放 443（HTTPS）+ 80（HTTP 重定向），不要直接暴露 3000 端口
 - **ACR 镜像仓库**：如需推送到阿里云容器镜像服务：
@@ -245,7 +263,7 @@ steam-screenshot-gallery/
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `PORT` | 后端服务器监听端口 | `3000` |
-| `JWT_SECRET` | JWT 签名密钥（生产环境必须设置） | 开发环境自动生成 |
+| `JWT_SECRET` | JWT 签名密钥（Docker 部署强制要求，未设置容器无法启动） | 开发环境自动生成 |
 | `NODE_ENV` | 运行环境 | `development` |
 | `NODE_TLS_REJECT_UNAUTHORIZED` | HTTPS 证书验证（设为 `1` 开启严格模式） | `0`（宽松） |
 

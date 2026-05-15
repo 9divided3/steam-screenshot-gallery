@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { get, run, all } = require('../db/database');
 const { authMiddleware } = require('../middleware/auth');
-const { generate: generateThumbnail, getDimensions } = require('../services/thumbnail');
+const { generate: generateThumbnail, getDimensions, validate: validateImage } = require('../services/thumbnail');
 const { resolveSteamId, getGameName, extractAppIdFromPath } = require('../services/steamApi');
 const { resolveGameId } = require('../services/gameResolver');
 const { SteamImportService } = require('../services/import/SteamImportService');
@@ -198,6 +198,12 @@ router.post('/import/steam-image', authMiddleware, upload.single('file'), async 
       return res.status(400).json({ error: '没有上传图片' });
     }
 
+    const isValid = await validateImage(req.file.path);
+    if (!isValid) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: '文件不是有效的图片格式' });
+    }
+
     // Dedup by steam file_id
     if (fileId) {
       const existing = get('SELECT id FROM screenshots WHERE user_id = ? AND steam_file_id = ?', [userId, fileId]);
@@ -274,6 +280,12 @@ router.post('/import/folder', authMiddleware, upload.array('files', 100), async 
 
   const results = [];
   for (const file of files) {
+    const isValid = await validateImage(file.path);
+    if (!isValid) {
+      fs.unlinkSync(file.path);
+      continue;
+    }
+
     let thumbPath = null;
     try {
       thumbPath = await generateThumbnail(file.path);

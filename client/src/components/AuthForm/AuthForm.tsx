@@ -68,16 +68,16 @@ export default function AuthForm({ mode }: AuthFormProps) {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full py-3"
+            className={`${isLogin ? 'btn-login' : 'btn-register'} w-full py-3`}
           >
             {loading ? (isLogin ? '登录中...' : '注册中...') : (isLogin ? '登录' : '注册')}
           </button>
         </form>
         <p className="text-center text-sm text-white/75 mt-5">
           {isLogin ? (
-            <>还没有账号？<Link to="/register" className="text-accent hover:text-accent-hover transition-colors duration-200">注册</Link></>
+            <>还没有账号？<Link to="/register" className="text-cyan-200 hover:text-white transition-colors duration-200">注册</Link></>
           ) : (
-            <>已有账号？<Link to="/login" className="text-accent hover:text-accent-hover transition-colors duration-200">登录</Link></>
+            <>已有账号？<Link to="/login" className="text-sky-200 hover:text-white transition-colors duration-200">登录</Link></>
           )}
         </p>
       </div>

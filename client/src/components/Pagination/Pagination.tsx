@@ -27,32 +27,33 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
   const pageNumbers = getPageNumbers(page, totalPages);
 
   return (
-    <div className="flex justify-center items-center gap-1.5 mt-10 pb-6">
+    <div className="flex justify-center items-center gap-1 sm:gap-1.5 mt-8 sm:mt-10 pb-6">
       <button
         disabled={page <= 1}
         onClick={() => goTo(1)}
-        className="px-3 py-2 text-xs text-white font-semibold hover:text-white/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="btn-ghost hidden min-h-9 px-3 py-1.5 text-xs sm:inline-flex"
       >
         首页
       </button>
       <button
         disabled={page <= 1}
         onClick={() => goTo(page - 1)}
-        className="bg-black/30 border border-white/[0.15] backdrop-blur-xl rounded-xl text-xs text-white font-semibold px-3 py-2 hover:bg-black/45 hover:border-white/[0.20] transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        className="btn-secondary min-h-11 min-w-11 px-2.5 py-2 text-base sm:min-h-9 sm:min-w-0 sm:px-3 sm:text-xs"
       >
-        上一页
+        <span className="hidden sm:inline">上一页</span>
+        <span className="sm:hidden">‹</span>
       </button>
       {pageNumbers.map((p, i) =>
         p === '...' ? (
-          <span key={`ellipsis-${i}`} className="px-1.5 text-xs text-text-muted">...</span>
+          <span key={`ellipsis-${i}`} className="px-0.5 sm:px-1.5 text-xs text-text-muted">...</span>
         ) : (
           <button
             key={p}
             onClick={() => goTo(p)}
-            className={`w-8 h-8 rounded-lg text-xs font-medium transition-all duration-200 ${
+            className={`h-9 w-9 rounded-xl text-sm font-semibold transition-all duration-200 sm:h-8 sm:w-8 sm:rounded-lg sm:text-xs ${
               p === page
-                ? 'bg-white/20 text-white font-semibold'
-                : 'text-text-muted hover:text-text-primary hover:bg-black/25'
+                ? 'border border-cyan-100/85 bg-cyan-400/[0.55] text-white shadow-lg shadow-cyan-400/30'
+                : 'border border-violet-200/55 bg-violet-500/[0.34] text-white hover:border-violet-100 hover:bg-violet-500/[0.48]'
             }`}
           >
             {p}
@@ -62,14 +63,15 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
       <button
         disabled={page >= totalPages}
         onClick={() => goTo(page + 1)}
-        className="bg-black/30 border border-white/[0.15] backdrop-blur-xl rounded-xl text-xs text-white font-semibold px-3 py-2 hover:bg-black/45 hover:border-white/[0.20] transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        className="btn-secondary min-h-11 min-w-11 px-2.5 py-2 text-base sm:min-h-9 sm:min-w-0 sm:px-3 sm:text-xs"
       >
-        下一页
+        <span className="hidden sm:inline">下一页</span>
+        <span className="sm:hidden">›</span>
       </button>
       <button
         disabled={page >= totalPages}
         onClick={() => goTo(totalPages)}
-        className="px-3 py-2 text-xs text-white font-semibold hover:text-white/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="btn-ghost hidden min-h-9 px-3 py-1.5 text-xs sm:inline-flex"
       >
         末页
       </button>
@@ -83,7 +85,7 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
           }
           input.value = '';
         }}
-        className="flex items-center gap-1 ml-3"
+        className="hidden sm:flex items-center gap-1 ml-3"
       >
         <input
           name="jump"
@@ -93,7 +95,7 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
           placeholder={`1-${totalPages}`}
           className="w-16 px-2 py-1.5 bg-black/30 border border-white/[0.15] backdrop-blur-xl rounded-lg text-xs text-white placeholder:text-text-muted text-center focus:outline-none focus:border-white/[0.25]"
         />
-        <button type="submit" className="text-xs text-white font-semibold hover:text-white/80 transition-colors px-1">
+        <button type="submit" className="btn-ghost min-h-8 px-2 py-1 text-xs">
           跳转
         </button>
       </form>

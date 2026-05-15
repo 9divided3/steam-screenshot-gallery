@@ -55,13 +55,16 @@ export default function FollowButton({ userId, initialIsFollowing, onToggle, cla
     <button
       onClick={handleClick}
       disabled={loading || !statusLoaded}
-      className={`text-xs font-medium rounded-lg px-3 py-1.5 transition-all duration-200 ${
+      className={`btn-chip ${
+        className.includes('btn-profile')
+          ? '!border-zinc-100/60 !bg-zinc-500/[0.58] !text-white hover:!border-white hover:!bg-zinc-400/[0.68]'
+          :
         !statusLoaded
-          ? 'bg-white/[0.04] border border-border backdrop-blur-sm text-text-muted'
+          ? '!border-white/[0.18] !bg-white/[0.12] !text-text-muted'
           : isFollowing
-            ? 'bg-white/[0.04] backdrop-blur-sm text-text-secondary border border-border hover:border-red-500/30 hover:text-red-400'
-            : 'bg-accent text-primary hover:bg-accent-hover active:scale-[0.97]'
-      } disabled:opacity-50 ${className}`}
+            ? '!border-red-200/55 !bg-red-500/[0.18] !text-red-100 hover:!border-red-200/80 hover:!bg-red-500/[0.38] hover:!text-white'
+            : '!border-red-200/85 !bg-red-500/[0.58] !text-white hover:!border-red-100 hover:!bg-red-500/[0.72] hover:!text-white'
+      } ${className}`}
     >
       {!statusLoaded ? '' : loading ? '...' : isFollowing ? '已关注' : '+ 关注'}
     </button>

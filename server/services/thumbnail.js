@@ -28,4 +28,13 @@ async function getDimensions(inputPath) {
   }
 }
 
-module.exports = { generate, getDimensions };
+async function validate(inputPath) {
+  try {
+    await sharp(inputPath).metadata();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+module.exports = { generate, getDimensions, validate };

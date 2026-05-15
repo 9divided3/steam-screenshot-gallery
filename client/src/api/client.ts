@@ -69,6 +69,32 @@ export const screenshots = {
     request('/screenshots/user-all', { method: 'DELETE' }),
   batchDelete: (ids: number[]) =>
     request('/screenshots/batch', { method: 'DELETE', body: JSON.stringify({ ids }) }),
+  batchDownload: async (ids: number[]) => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${BASE}/screenshots/batch-download`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: '下载失败' }));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const disposition = res.headers.get('Content-Disposition');
+    const match = disposition && disposition.match(/filename="?(.+?)"?$/);
+    a.download = match ? match[1] : `screenshots-${new Date().toISOString().slice(0, 10)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
 };
 
 // Games

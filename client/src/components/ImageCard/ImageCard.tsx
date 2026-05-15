@@ -58,9 +58,8 @@ export default function ImageCard({
   return (
     <div
       ref={cardRef}
-      className={`group relative rounded-xl overflow-hidden glass cursor-pointer hover-lift hover-glow ${className}`}
+      className={`image-display-card image-hover-card group relative overflow-hidden cursor-pointer hover-lift ${className}`}
       style={{
-        aspectRatio,
         transform: transform || undefined,
         transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease',
         opacity: 0,
@@ -71,7 +70,7 @@ export default function ImageCard({
       onMouseLeave={handleMouseLeave}
     >
       {/* Image with zoom + shine */}
-      <div className="img-hover-zoom absolute inset-0">
+      <div className="img-hover-zoom relative" style={{ aspectRatio }}>
         {!loaded && <div className="absolute inset-0 skeleton" />}
         <img
           src={imgSrc}
@@ -104,15 +103,15 @@ export default function ImageCard({
 
       {/* Overlay */}
       {showOverlay && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 group-hover:opacity-100 transition-all duration-300" />
+        <div className="pointer-events-none absolute left-0 right-0 top-0 z-[1] bg-gradient-to-t from-black/28 via-transparent to-transparent opacity-75 transition-opacity duration-300 group-hover:opacity-100" style={{ aspectRatio }} />
       )}
 
       {/* Bottom info */}
       {(title || subtitle || overlayContent) && (
-        <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+        <div className="relative z-10 px-3 py-2">
           {overlayContent}
-          {title && <p className="text-xs text-white/90 truncate font-medium">{title}</p>}
-          {subtitle && <p className="text-[10px] text-white/85 truncate mt-0.5">{subtitle}</p>}
+          {title && <p className="text-xs text-white/80 truncate font-medium leading-tight">{title}</p>}
+          {subtitle && <p className="text-[10px] text-white/65 truncate mt-0.5 leading-tight">{subtitle}</p>}
         </div>
       )}
     </div>
