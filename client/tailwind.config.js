@@ -37,6 +37,8 @@ export default {
         'fade-in': 'fadeIn 0.4s ease-out forwards',
         'scale-in': 'scaleIn 0.3s ease-out forwards',
         'slide-down': 'slideDown 0.3s ease-out forwards',
+        'page-enter': 'pageEnter 0.4s ease-out forwards',
+        'breathe': 'breathe 4s ease-in-out infinite',
       },
       keyframes: {
         fadeUp: {
@@ -54,6 +56,14 @@ export default {
         slideDown: {
           'from': { opacity: '0', transform: 'translateY(-8px)' },
           'to': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pageEnter: {
+          'from': { opacity: '0', transform: 'translateY(10px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
+        },
+        breathe: {
+          '0%, 100%': { opacity: '0.5', transform: 'scale(1)' },
+          '50%': { opacity: '1', transform: 'scale(1.05)' },
         },
       },
     },
