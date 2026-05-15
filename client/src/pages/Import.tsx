@@ -7,11 +7,25 @@ import type { Game } from '../types';
 export default function Import() {
   const [tab, setTab] = useState<'steam' | 'folder'>('folder');
   const [message, setMessage] = useState('');
+  const [messageLeaving, setMessageLeaving] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!message) return;
+    setMessageLeaving(false);
+    const fadeTimer = window.setTimeout(() => setMessageLeaving(true), 9300);
+    const clearTimer = window.setTimeout(() => setMessage(''), 10000);
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(clearTimer);
+    };
+  }, [message]);
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8 animate-fade-up">
-      <h1 className="font-display text-2xl mb-8">导入截图</h1>
+      <h1 className="font-display text-2xl mb-5">导入截图</h1>
+
+      <ContentDisclaimer />
 
       {/* Tab bar */}
       <div className="mb-8 flex gap-2 rounded-2xl border border-white/[0.10] bg-black/35 p-1 backdrop-blur-xl">
@@ -40,7 +54,11 @@ export default function Import() {
       {message && (
         <div
           key={message}
-          className="mb-5 p-4 rounded-xl bg-cyan-400/[0.16] border border-cyan-300/30 text-sm text-white/85 animate-toast-in"
+          className={`overflow-hidden rounded-xl border bg-emerald-600/[0.72] px-4 text-sm font-semibold text-white shadow-lg shadow-emerald-950/35 backdrop-blur-xl transition-[max-height,margin,padding,opacity,transform,border-color] duration-700 ease-out ${
+            messageLeaving
+              ? 'mb-0 max-h-0 translate-y-1 border-transparent py-0 opacity-0'
+              : 'mb-5 max-h-28 translate-y-0 border-emerald-200/55 py-4 opacity-100 animate-toast-in'
+          }`}
         >
           {message}
         </div>
@@ -51,6 +69,57 @@ export default function Import() {
       ) : (
         <SteamApiImport />
       )}
+    </div>
+  );
+}
+
+function ContentDisclaimer() {
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (collapsed) {
+    return (
+      <div className="mb-8 flex justify-end">
+        <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.20] bg-zinc-700/[0.72] px-3 py-2 text-xs text-white/82 shadow-lg shadow-black/30 backdrop-blur-2xl">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-red-400 shadow-[0_0_16px_rgba(248,113,113,0.9)]" />
+          <span className="truncate font-medium">内容合规提示</span>
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            className="rounded-full border border-white/[0.20] bg-white/[0.12] px-2 py-0.5 text-white/88 transition-colors hover:bg-white/[0.20] hover:text-white"
+            aria-expanded="false"
+          >
+            展开
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-8 rounded-2xl border border-white/[0.22] bg-zinc-700/[0.72] px-4 py-3.5 text-sm text-white/92 shadow-xl shadow-black/35 backdrop-blur-2xl">
+      <div className="flex gap-3">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-200/45 bg-red-500/[0.30] text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_0_28px_rgba(248,113,113,0.44)]">
+        <svg className="h-4 w-4 drop-shadow-[0_0_8px_rgba(248,113,113,0.85)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+        </svg>
+        </div>
+        <div className="min-w-0 flex-1 space-y-1 leading-relaxed">
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-semibold text-white">内容合规提示</p>
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              className="shrink-0 rounded-full border border-white/[0.20] bg-white/[0.12] px-2.5 py-1 text-xs font-semibold text-white/88 transition-colors hover:bg-white/[0.20] hover:text-white"
+              aria-expanded="true"
+            >
+              收起
+            </button>
+          </div>
+          <p className="text-white/78">
+            请勿上传、导入或公开展示任何违反我国法律法规、公序良俗，或侵犯他人合法权益的内容。您应对所上传内容的合法性与权利来源负责；平台有权对违规内容进行隐藏、删除或限制展示。
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -405,20 +474,20 @@ function SteamApiImport() {
 
       {/* Stale items retry — visible when not actively importing */}
       {!active && staleTotal > 0 && (
-        <div className="p-4 rounded-xl border border-amber-500/70 bg-amber-500/40 flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-200/45 bg-amber-700/[0.72] p-4 shadow-lg shadow-black/30 backdrop-blur-xl">
           <div>
-            <p className="text-sm text-amber-300 font-medium">
+            <p className="text-sm text-amber-50 font-semibold">
               {staleFailed > 0 && stalePending > 0
                 ? `有 ${staleFailed} 张限速失败、${stalePending} 张待解析`
                 : staleFailed > 0
                   ? `上次导入有 ${staleFailed} 张截图因限速失败`
                   : `有 ${stalePending} 张截图尚未完成解析`}
             </p>
-            <p className="text-xs text-white/75 mt-0.5">不会重复下载已成功的截图</p>
+            <p className="text-xs text-white/80 mt-0.5">不会重复下载已成功的截图</p>
           </div>
           <button
             onClick={retryFailed}
-            className="btn-download text-sm whitespace-nowrap"
+            className="min-h-10 shrink-0 rounded-xl border border-amber-100/55 bg-amber-300/[0.26] px-4 text-sm font-semibold text-amber-50 shadow-lg shadow-amber-950/20 backdrop-blur-xl transition-all duration-200 hover:border-amber-50/80 hover:bg-amber-200/[0.34] hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
           >
             继续处理 {staleTotal} 张
           </button>

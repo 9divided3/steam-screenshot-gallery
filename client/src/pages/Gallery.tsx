@@ -196,7 +196,7 @@ export default function Gallery() {
   const hasActiveFilters = Boolean(search || gameFilter || publicFilter || sort !== 'date_desc');
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-8 pb-28 sm:pb-8">
+    <div className={`max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-8 sm:pb-8 ${selectMode ? 'pb-44' : 'pb-10'}`}>
       <div
         className="mb-5 sm:mb-6 flex items-end justify-between gap-3"
         style={{ animation: 'pageEnter 0.5s ease-out forwards' }}
@@ -397,27 +397,38 @@ export default function Gallery() {
       )}
 
       {selectMode && (
-        <div className="sm:hidden fixed left-3 right-3 bottom-3 z-40 rounded-3xl border border-white/[0.14] bg-black/85 p-3 shadow-2xl shadow-black/60 backdrop-blur-2xl">
-          <div className="mb-2 flex items-center justify-between px-1">
-            <span className="text-sm font-semibold text-white">已选 {selected.size} 张</span>
-            <button
-              onClick={selectAllPage}
-              className="btn-secondary min-h-10 px-3 text-xs"
-            >
-              {screenshots.length > 0 && selected.size === screenshots.length && screenshots.every((s) => selected.has(s.id)) ? '取消本页' : '全选本页'}
-            </button>
+        <div className="gallery-mobile-actions sm:hidden">
+          <div className="mb-2.5 flex items-center justify-between gap-3 px-1">
+            <span className="min-w-0 text-sm font-semibold text-white">已选 {selected.size} 张</span>
+            <div className="flex shrink-0 gap-1.5">
+              <button
+                onClick={selectAllPage}
+                className="gallery-mobile-actions-secondary"
+              >
+                {screenshots.length > 0 && selected.size === screenshots.length && screenshots.every((s) => selected.has(s.id)) ? '取消本页' : '全选本页'}
+              </button>
+              {total > screenshots.length && (
+                <button
+                  onClick={selectAllGallery}
+                  disabled={selectingAll}
+                  className="gallery-mobile-actions-secondary"
+                >
+                  {selectingAll ? '获取中' : total > 0 && selected.size === total ? '取消图库' : '全选图库'}
+                </button>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-4 gap-2">
-            <button onClick={() => batchTogglePublic(true)} disabled={selected.size === 0} className="btn-public min-h-11 px-2 text-xs">
+            <button onClick={() => batchTogglePublic(true)} disabled={selected.size === 0} className="gallery-mobile-action-button gallery-mobile-action-public">
               公开
             </button>
-            <button onClick={() => batchTogglePublic(false)} disabled={selected.size === 0} className="btn-private min-h-11 px-2 text-xs">
+            <button onClick={() => batchTogglePublic(false)} disabled={selected.size === 0} className="gallery-mobile-action-button gallery-mobile-action-private">
               私密
             </button>
-            <button onClick={batchDownload} disabled={selected.size === 0 || downloading} className="btn-download min-h-11 px-2 text-xs">
+            <button onClick={batchDownload} disabled={selected.size === 0 || downloading} className="gallery-mobile-action-button gallery-mobile-action-download">
               {downloading ? '下载中' : '下载'}
             </button>
-            <button onClick={batchDelete} disabled={selected.size === 0} className="btn-delete min-h-11 px-2 text-xs">
+            <button onClick={batchDelete} disabled={selected.size === 0} className="gallery-mobile-action-button gallery-mobile-action-delete">
               删除
             </button>
           </div>

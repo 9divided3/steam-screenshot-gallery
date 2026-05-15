@@ -725,6 +725,194 @@
     font-size: 0.75rem;
   }
 
+  .pagination-mobile-liquid {
+    position: relative;
+    isolation: isolate;
+    width: min(100%, 18rem);
+    overflow: hidden;
+    border-radius: 1.35rem;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    background:
+      linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.065) 52%, rgba(255,255,255,0.12)),
+      rgba(39, 39, 42, 0.70);
+    padding: 0.45rem;
+    box-shadow:
+      0 20px 48px -32px rgba(0, 0, 0, 0.92),
+      inset 0 1px 0 rgba(255, 255, 255, 0.26),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(28px) saturate(1.28);
+    -webkit-backdrop-filter: blur(28px) saturate(1.28);
+  }
+
+  .pagination-mobile-liquid::before,
+  .gallery-mobile-actions::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    border-radius: inherit;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,0.20), transparent 35%, rgba(255,255,255,0.08) 72%, transparent),
+      radial-gradient(circle at 18% 0%, rgba(255,255,255,0.20), transparent 34%);
+    pointer-events: none;
+  }
+
+  .pagination-mobile-row {
+    display: grid;
+    grid-template-columns: 2.45rem minmax(0, 1fr) 2.45rem;
+    gap: 0.4rem;
+    align-items: center;
+  }
+
+  .pagination-mobile-button,
+  .pagination-mobile-input,
+  .gallery-mobile-actions-secondary,
+  .gallery-mobile-action-button {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.075) 52%, rgba(255,255,255,0.12)),
+      rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.92);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(18px) saturate(1.22);
+    -webkit-backdrop-filter: blur(18px) saturate(1.22);
+    transition:
+      transform 0.2s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .pagination-mobile-button {
+    display: inline-flex;
+    height: 2.45rem;
+    min-width: 2.45rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.95rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .pagination-mobile-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+  }
+
+  .pagination-mobile-status {
+    display: flex;
+    height: 2.45rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border-radius: 0.95rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.18);
+    color: rgba(255,255,255,0.72);
+    font-size: 0.78rem;
+    font-weight: 750;
+  }
+
+  .pagination-mobile-status span:first-child {
+    color: #fff;
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+
+  .pagination-mobile-jump-row {
+    display: grid;
+    grid-template-columns: 4.75rem 3.1rem;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+  }
+
+  .pagination-mobile-input {
+    height: 2.25rem;
+    min-width: 0;
+    border-radius: 0.85rem;
+    padding: 0 0.45rem;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 750;
+  }
+
+  .pagination-mobile-input::placeholder {
+    color: rgba(255,255,255,0.54);
+  }
+
+  .pagination-mobile-submit {
+    height: 2.25rem;
+    min-width: 3.1rem;
+    padding: 0 0.35rem;
+    font-size: 0.68rem;
+  }
+
+  .gallery-mobile-actions {
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    z-index: 40;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    background:
+      linear-gradient(145deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06) 52%, rgba(255,255,255,0.12)),
+      rgba(24, 24, 27, 0.86);
+    padding: 0.75rem;
+    box-shadow:
+      0 24px 64px -28px rgba(0, 0, 0, 0.96),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(30px) saturate(1.32);
+    -webkit-backdrop-filter: blur(30px) saturate(1.32);
+  }
+
+  .gallery-mobile-actions-secondary,
+  .gallery-mobile-action-button {
+    min-height: 2.55rem;
+    border-radius: 0.95rem;
+    padding: 0 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .gallery-mobile-actions-secondary {
+    white-space: nowrap;
+  }
+
+  .gallery-mobile-action-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.44;
+  }
+
+  .gallery-mobile-action-public {
+    border-color: rgba(134, 239, 172, 0.28);
+    background: linear-gradient(180deg, rgba(74,222,128,0.22), rgba(34,197,94,0.12)), rgba(255,255,255,0.08);
+  }
+
+  .gallery-mobile-action-private {
+    border-color: rgba(226,232,240,0.24);
+    background: linear-gradient(180deg, rgba(148,163,184,0.23), rgba(100,116,139,0.12)), rgba(255,255,255,0.08);
+  }
+
+  .gallery-mobile-action-download {
+    border-color: rgba(147,197,253,0.28);
+    background: linear-gradient(180deg, rgba(96,165,250,0.24), rgba(37,99,235,0.13)), rgba(255,255,255,0.08);
+  }
+
+  .gallery-mobile-action-delete {
+    border-color: rgba(252,165,165,0.34);
+    background: linear-gradient(180deg, rgba(248,113,113,0.25), rgba(185,28,28,0.15)), rgba(255,255,255,0.08);
+  }
+
   .grain-overlay::before {
     content: '';
     position: fixed;
@@ -888,7 +1076,7 @@
     }
 
     .home-carousel-title {
-      font-size: clamp(1.55rem, 9vw, 2.7rem);
+      font-size: clamp(1rem, 5.6vw, 1.6rem);
     }
 
     .home-carousel-arrow {
@@ -991,7 +1179,7 @@
     left: clamp(1.25rem, 5vw, 4.25rem);
     bottom: clamp(1.25rem, 4.5vw, 3.7rem);
     z-index: 3;
-    max-width: min(34rem, 72vw);
+    max-width: min(24rem, 64vw);
     color: #fff;
     opacity: 0;
     transform: translateY(1.35rem);
@@ -1011,14 +1199,14 @@
   .home-carousel-kicker {
     margin-bottom: 0.75rem;
     color: #efd8b8;
-    font-size: clamp(0.72rem, 1.1vw, 0.84rem);
+    font-size: clamp(0.58rem, 0.82vw, 0.68rem);
     font-weight: 700;
     letter-spacing: 0.18em;
   }
 
   .home-carousel-title {
     color: #fff;
-    font-size: clamp(1.65rem, 4.6vw, 4.15rem);
+    font-size: clamp(1.08rem, 2.7vw, 2.35rem);
     font-weight: 780;
     line-height: 0.98;
     letter-spacing: 0;
@@ -1028,7 +1216,7 @@
   .home-carousel-meta {
     margin-top: clamp(0.55rem, 1.5vw, 0.95rem);
     color: rgba(255,255,255,0.76);
-    font-size: clamp(0.8rem, 1.3vw, 0.95rem);
+    font-size: clamp(0.66rem, 0.9vw, 0.76rem);
     font-weight: 600;
   }
 

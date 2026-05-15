@@ -28,8 +28,62 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
   const pageNumbers = getPageNumbers(page, totalPages);
 
   return (
+    <>
+    <nav className="pagination-mobile-liquid mx-auto mt-6 sm:hidden" aria-label="分页">
+      <div className="pagination-mobile-row">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => goTo(page - 1)}
+          className="pagination-mobile-button"
+          aria-label="上一页"
+        >
+          ‹
+        </button>
+        <div className="pagination-mobile-status" aria-current="page">
+          <span>{page}</span>
+          <span>/ {totalPages}</span>
+        </div>
+        <button
+          type="button"
+          disabled={page >= totalPages}
+          onClick={() => goTo(page + 1)}
+          className="pagination-mobile-button"
+          aria-label="下一页"
+        >
+          ›
+        </button>
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const input = (e.currentTarget.elements.namedItem('jump') as HTMLInputElement);
+          const n = parseInt(input.value);
+          if (n >= 1 && n <= totalPages) {
+            goTo(n);
+          }
+          input.value = '';
+        }}
+        className="pagination-mobile-jump-row"
+        aria-label="跳转到指定页"
+      >
+        <input
+          name="jump"
+          type="number"
+          min={1}
+          max={totalPages}
+          aria-label="页码"
+          placeholder={`1-${totalPages}`}
+          className="pagination-mobile-input"
+        />
+        <button type="submit" className="pagination-mobile-button pagination-mobile-submit">
+          跳转
+        </button>
+      </form>
+    </nav>
+
     <nav
-      className="pagination-liquid mx-auto mt-8 sm:mt-10"
+      className="pagination-liquid mx-auto mt-10 hidden sm:flex"
       aria-label="分页"
     >
       <button
@@ -118,5 +172,6 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
         </button>
       </form>
     </nav>
+    </>
   );
 }

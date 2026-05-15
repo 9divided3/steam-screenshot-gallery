@@ -245,7 +245,6 @@ export default function Home() {
                 />
                 <div className="home-carousel-shade" />
                 <div className="home-carousel-copy">
-                  <p className="home-carousel-kicker">精选展示</p>
                   <h2 className="home-carousel-title">{item.game_name || '未知游戏'}</h2>
                   <p className="home-carousel-meta">by {item.display_name || item.username}</p>
                 </div>
